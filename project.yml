@@ -1,0 +1,74 @@
+# KinoLel – iPhone-App. XcodeGen-Projekt (erzeugt KinoLel.xcodeproj: `xcodegen generate`).
+#
+# Marke: EINZIGE Stelle für Name, Server, Kennung und Version ist der Block "settings.base" unten.
+# Name endgültig „KinoLel“ (Lel, 15.10.2026). PRODUCT_BUNDLE_IDENTIFIER nach der ersten Verteilung nicht ändern.
+name: KinoLel
+options:
+  bundleIdPrefix: de.kinolel
+  deploymentTarget:
+    iOS: "16.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    KINOLEL_APP_NAME: KinoLel
+    KINOLEL_SERVER_URL: https://kinolel.de
+    PRODUCT_BUNDLE_IDENTIFIER: de.kinolel.app
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    SWIFT_VERSION: "5.0"
+    TARGETED_DEVICE_FAMILY: "1,2"
+    ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+    ENABLE_USER_SCRIPT_SANDBOXING: "NO"
+targets:
+  KinoLel:
+    type: application
+    platform: iOS
+    sources:
+      - path: KinoLel
+    info:
+      path: KinoLel/Info.plist
+      properties:
+        CFBundleDisplayName: $(KINOLEL_APP_NAME)
+        CFBundleName: $(KINOLEL_APP_NAME)
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        CFBundleDevelopmentRegion: de
+        CFBundleLocalizations: [de, hu]
+        KinoLelServerURL: $(KINOLEL_SERVER_URL)
+        KinoLelAppName: $(KINOLEL_APP_NAME)
+        LSRequiresIPhoneOS: true
+        ITSAppUsesNonExemptEncryption: false
+        # Kernanforderung (Lel): Wiedergabe läuft weiter bei gesperrtem Bildschirm / im Hintergrund
+        UIBackgroundModes: [audio]
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+        UILaunchScreen:
+          UIColorName: Startgrund
+          UIImageName: StartLogo
+          UIImageRespectsSafeAreaInsets: true
+        UIStatusBarStyle: UIStatusBarStyleLightContent
+        UIViewControllerBasedStatusBarAppearance: true
+        UIRequiresFullScreen: false
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+    settings:
+      base:
+        INFOPLIST_FILE: KinoLel/Info.plist
+        CODE_SIGN_STYLE: Automatic
+        DEVELOPMENT_TEAM: ""
+schemes:
+  KinoLel:
+    build:
+      targets:
+        KinoLel: all
+    run:
+      config: Debug
+    archive:
+      config: Release

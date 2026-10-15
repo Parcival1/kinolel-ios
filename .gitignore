@@ -1,0 +1,6 @@
+KinoLel.xcodeproj/
+build/
+ausgabe/
+rauchtest/
+.DS_Store
+*.ipa

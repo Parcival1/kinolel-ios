@@ -1,0 +1,84 @@
+# KinoLel-App (iOS): Build auf dem macOS-Runner.
+#
+# Ergebnis: unsignierte .ipa (zum Installieren braucht es eine Signatur – Apple-Developer-Konto oder
+# AltStore/Sideloadly, siehe TESTANLEITUNG.md) + Rauchtest im iOS-Simulator (Bildschirmfotos).
+# Tag "v*" (z. B. v0.1.0): zusätzlich Vorab-Version unter "Releases".
+name: ios
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build
+    runs-on: macos-26
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Werkzeuge
+        run: |
+          brew install xcodegen
+          xcodebuild -version
+
+      - name: Projekt erzeugen
+        run: xcodegen generate
+
+      - name: Version
+        run: |
+          VERSION=$(grep 'MARKETING_VERSION:' project.yml | head -1 | sed -E 's/.*"([^"]+)".*/\1/')
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then VERSION=${GITHUB_REF#refs/tags/v}; fi
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+      - name: Build für iPhone (unsigniert)
+        run: |
+          set -o pipefail
+          xcodebuild -project KinoLel.xcodeproj -scheme KinoLel -configuration Release \
+            -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath build/geraet \
+            MARKETING_VERSION="$VERSION" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            build | tail -40
+          mkdir -p ausgabe/Payload
+          cp -R build/geraet/Build/Products/Release-iphoneos/KinoLel.app ausgabe/Payload/
+          (cd ausgabe && zip -qry "KinoLel-$VERSION-unsigniert.ipa" Payload && rm -rf Payload)
+          /usr/libexec/PlistBuddy -c "Print :UIBackgroundModes" build/geraet/Build/Products/Release-iphoneos/KinoLel.app/Info.plist
+          ls -la ausgabe
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v7
+        with:
+          name: kinolel-ios-ipa
+          path: ausgabe/*.ipa
+          if-no-files-found: error
+
+      - name: Build für Simulator
+        run: |
+          set -o pipefail
+          xcodebuild -project KinoLel.xcodeproj -scheme KinoLel -configuration Debug \
+            -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath build/sim \
+            CODE_SIGN_IDENTITY="-" build | tail -20
+
+      - name: Rauchtest im Simulator
+        continue-on-error: true
+        run: bash .github/scripts/rauchtest.sh build/sim/Build/Products/Debug-iphonesimulator/KinoLel.app
+
+      - name: Bildschirmfotos hochladen
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: rauchtest-bilder
+          path: rauchtest/
+          if-no-files-found: ignore
+
+      - name: Vorab-Version veröffentlichen (nur bei Tag v*)
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" ausgabe/*.ipa --prerelease --title "Testversion $GITHUB_REF_NAME (iOS, unsigniert)" --notes-file TESTANLEITUNG.md
