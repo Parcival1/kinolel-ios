@@ -1,7 +1,12 @@
 # KinoLel für iPhone – Testanleitung
 
 Die Testversion ist **unsigniert** (`KinoLel-<Version>-unsigniert.ipa`). Apple lässt Apps nur signiert auf iPhones.
-Wege zum Testen:
+
+**Empfohlen (Lel 22.10.2026): SideStore** – kostenlos mit Apple-ID, erneuert die 7-Tage-Signatur auf dem iPhone selbst,
+Updates erscheinen in SideStore. Schritt für Schritt: **[SIDESTORE.md](SIDESTORE.md)**.
+Quelle für SideStore: `https://kinolel.de/web/kinolel/sidestore.json` (KinoLel + KinoLel Wünsche).
+
+Weitere Wege:
 
 | Weg | Kosten | Haken |
 |---|---|---|
@@ -35,15 +40,16 @@ Wege zum Testen:
 | 15 | Heruntergeladenen Titel online abspielen | Spielt aus der Datei (kein Datenverbrauch), Fortschritt wie gewohnt |
 | 16 | Nachricht vom Server (Dashboard → Gerät → Nachricht) während der Wiedergabe | Erscheint oben **über dem Player**; Pause/Stopp vom Dashboard wirken auf den Player |
 | 17 | **Was ist neu** | Nach einem Update einmal die Meldung „Neu in KinoLel …“, beim nächsten Start nicht mehr (Neuinstallation: keine Meldung) |
-| 18 | Update-Hinweis | Gibt es eine neuere Testversion, fragt die App (höchstens alle 6 Stunden) und öffnet auf Wunsch die Download-Seite |
+| 18 | Update-Hinweis | Gibt es eine neuere Testversion, fragt die App (höchstens alle 6 Stunden); „Aktualisieren“ öffnet SideStore (sonst die Download-Seite) |
 | 19 | iPhone auf Englisch | App-eigene Texte (Startbild, Downloads, Meldungen) auf Englisch |
 
 ## Automatische Tests (GitHub, ohne Signatur)
 Jeder Build läuft im **iOS-Simulator** durch (Ergebnis „oberflaechentest“ mit Bildschirmfotos):
 - „Was ist neu“ auf Deutsch, Englisch, Ungarisch – genau einmal
 - Start ohne Internet: Hinweis, Download-Liste, Schalter „Nur im WLAN“
-- mit dem Secret `KINOLEL_TEST_PW` (Konto kinolel-hilfe): eine kurze Folge „Klein“ herunterladen, ohne Internet aus der
-  Liste abspielen, wieder online → Position bei Jellyfin, Download löschen, abmelden
+- bei Versionen (Tag `v*`) mit dem Secret `KINOLEL_TEST_PW` (Konto kinolel-hilfe): eine kurze Folge „Klein“
+  herunterladen, ohne Internet aus der Liste abspielen, wieder online → Position bei Jellyfin, Download löschen,
+  abmelden (nur bei Versionen, damit nicht jeder Build den Server/das NAS belastet)
 
 Nicht im Simulator prüfbar (nur auf dem echten iPhone): Sperrbildschirm/Hintergrundton, Bild-in-Bild, Anruf,
 echter Flugmodus/Mobilfunk, Downloads bei geschlossener App über längere Zeit.

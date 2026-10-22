@@ -133,10 +133,10 @@ enum Text {
     // Update
     static var updateTitel: String { T("Update verfügbar", "Frissítés elérhető", "Update available") }
     static func updateText(_ version: String) -> String {
-        T("\(app) \(version) ist verfügbar. Installiere sie wie beim ersten Mal (z. B. mit Sideloadly oder AltStore).",
-          "A(z) \(app) \(version) verziója elérhető. Telepítsd ugyanúgy, mint először (pl. Sideloadly vagy AltStore segítségével).",
-          "\(app) \(version) is available. Install it the same way as the first time (e.g. with Sideloadly or AltStore).")
+        T("\(app) \(version) ist verfügbar.\n„Aktualisieren“ öffnet SideStore: dort unter „My Apps“ bei \(app) auf „Update“ tippen.",
+          "Elérhető a(z) \(app) \(version).\nA „Frissítés” megnyitja a SideStore-t: ott a „My Apps” alatt koppints a(z) \(app) melletti „Update” gombra.",
+          "\(app) \(version) is available.\n“Update” opens SideStore: tap “Update” next to \(app) under “My Apps”.")
     }
-    static var updateSeite: String { T("Zur Download-Seite", "Letöltési oldal", "Open download page") }
+    static var updateJetzt: String { T("Aktualisieren", "Frissítés", "Update") }
     static var updateSpaeter: String { T("Später", "Később", "Later") }
 }

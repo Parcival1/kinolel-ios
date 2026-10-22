@@ -1,6 +1,7 @@
 // KinoLel-App (iOS): Hinweis auf eine neue Version (wie die Android-App: GitHub-Releases, höchstens alle 6 Stunden).
-// Ohne App Store kann sich eine iPhone-App nicht selbst installieren – der Hinweis öffnet die Download-Seite der neuen
-// Version; installiert wird wie beim ersten Mal (Sideloadly/AltStore, siehe TESTANLEITUNG.md).
+// Ohne App Store kann sich eine iPhone-App nicht selbst installieren. Installiert wird über SideStore (Quelle
+// https://kinolel.de/web/kinolel/sidestore.json, Lel 22.10.2026): „Aktualisieren“ öffnet SideStore, sonst AltStore,
+// sonst die Download-Seite der neuen Version (z. B. für Sideloadly).
 import UIKit
 
 enum Aktualisierung {
@@ -39,9 +40,17 @@ enum Aktualisierung {
                 let hinweis = UIAlertController(title: Text.updateTitel, message: Text.updateText(Versionsnummer.text(beste)),
                                                 preferredStyle: .alert)
                 hinweis.addAction(UIAlertAction(title: Text.updateSpaeter, style: .cancel))
-                hinweis.addAction(UIAlertAction(title: Text.updateSeite, style: .default) { _ in UIApplication.shared.open(seite) })
+                hinweis.addAction(UIAlertAction(title: Text.updateJetzt, style: .default) { _ in oeffne(["sidestore://", "altstore://"], sonst: seite) })
                 gastgeber.present(hinweis, animated: true)
             }
         }.resume()
+    }
+
+    /// Erste App öffnen, die sich meldet (SideStore, AltStore) – sonst die Download-Seite
+    private static func oeffne(_ adressen: [String], sonst seite: URL) {
+        guard let erste = adressen.first, let url = URL(string: erste) else { return UIApplication.shared.open(seite) }
+        UIApplication.shared.open(url) { geoeffnet in
+            if !geoeffnet { oeffne(Array(adressen.dropFirst()), sonst: seite) }
+        }
     }
 }

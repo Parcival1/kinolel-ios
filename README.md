@@ -30,7 +30,7 @@ Jellyfin-Weboberfläche: Musik läuft im Web-Player weiter (Jellyfin 12 setzt di
 | Format: MP4 – Original, wenn iPhone-tauglich (MP4/MOV mit H.264 oder HEVC „hvc1“), H.264 in MKV wird verlustfrei umgepackt, sonst H.264/AAC vom Server (`stream.mp4`); ein Untertitel eingebettet (mov_text) | `Downloads.swift` (`pfad`) |
 | Server-Befehle (Pause/Weiter/Stopp/Spulen) laufen über den playbackManager an den Player; Nachrichten vom Server erscheinen über dem Player; kein Doppelstart (Fokus der Kachel wird gelöst); eine Sitzung je Gerät (Player nutzt die Adresse der Weboberfläche) | `Ressourcen/videoplayer.js`, `Ressourcen/nativeshell.js`, `Hinweis.swift` |
 | **Was ist neu**: einmalige Meldung nach einem Update (de/hu/en) | `Neuigkeiten.swift`, `Ressourcen/neuigkeiten.json` |
-| Hinweis auf neue Versionen (GitHub-Releases, höchstens alle 6 h) – installiert wird wie beim ersten Mal | `Aktualisierung.swift` |
+| Hinweis auf neue Versionen (GitHub-Releases, höchstens alle 6 h); „Aktualisieren“ öffnet SideStore | `Aktualisierung.swift` |
 | Links auf KinoLel Wünsche öffnen die App „KinoLel Wünsche“ (`kinolelwuensche://`) | `WebViewController.swift` |
 | App-eigene Texte Deutsch/Ungarisch/Englisch | `Texte.swift` |
 
@@ -49,4 +49,6 @@ unsignierte `.ipa` + Rauchtest im Simulator (Bildschirmfotos) + Oberflächentest
 `.github/scripts/oberflaechentest.sh`; der Download-Teil braucht das Secret `KINOLEL_TEST_PW`). Tag `v*` → Vorab-Version.
 Lokal auf einem Mac: `brew install xcodegen && xcodegen generate && open KinoLel.xcodeproj`.
 
-Zum Installieren auf einem iPhone muss die App signiert werden – siehe [TESTANLEITUNG.md](TESTANLEITUNG.md).
+Zum Installieren auf einem iPhone muss die App signiert werden – empfohlen kostenlos mit **SideStore**
+([SIDESTORE.md](SIDESTORE.md), Quelle `https://kinolel.de/web/kinolel/sidestore.json`), sonst siehe
+[TESTANLEITUNG.md](TESTANLEITUNG.md).
