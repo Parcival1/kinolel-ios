@@ -71,7 +71,18 @@ final class WebViewController: UIViewController, WKNavigationDelegate, WKUIDeleg
 
         player.webView = webView
         player.gastgeber = self
+        // Lel 22.10.2026: bei jedem Zurückkehren in die App nach Updates suchen (beim Start nach „Was ist neu“)
+        NotificationCenter.default.addObserver(self, selector: #selector(imVordergrund), name: UIScene.willEnterForegroundNotification,
+                                               object: nil)
         laden()
+    }
+
+    @objc private func imVordergrund() {
+        guard startFertig else { return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
+            guard let self else { return }
+            Aktualisierung.pruefen(auf: self)
+        }
     }
 
     #if DEBUG
