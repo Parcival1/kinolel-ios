@@ -12,9 +12,5 @@ enum Marke {
     static let lavendel = UIColor(red: 0x9A / 255.0, green: 0xA4 / 255.0, blue: 0xFF / 255.0, alpha: 1)
     static let grund = UIColor(red: 0x0B / 255.0, green: 0x0F / 255.0, blue: 0x18 / 255.0, alpha: 1)
     static let text = UIColor(white: 1, alpha: 0.75)
-
-    /// Ungarisch, wenn das Gerät auf Ungarisch steht – sonst Deutsch
-    static var ungarisch: Bool {
-        (Locale.preferredLanguages.first ?? "de").lowercased().hasPrefix("hu")
-    }
+    // App-Sprache (de/hu/en): Texte.swift
 }

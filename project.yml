@@ -13,7 +13,7 @@ settings:
     KINOLEL_APP_NAME: KinoLel
     KINOLEL_SERVER_URL: https://kinolel.de
     PRODUCT_BUNDLE_IDENTIFIER: de.kinolel.app
-    MARKETING_VERSION: "0.1.1"
+    MARKETING_VERSION: "0.1.2"
     CURRENT_PROJECT_VERSION: "1"
     SWIFT_VERSION: "5.0"
     TARGETED_DEVICE_FAMILY: "1,2"
@@ -33,7 +33,7 @@ targets:
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         CFBundleDevelopmentRegion: de
-        CFBundleLocalizations: [de, hu]
+        CFBundleLocalizations: [de, hu, en]
         KinoLelServerURL: $(KINOLEL_SERVER_URL)
         KinoLelAppName: $(KINOLEL_APP_NAME)
         LSRequiresIPhoneOS: true
@@ -63,6 +63,22 @@ targets:
         INFOPLIST_FILE: KinoLel/Info.plist
         CODE_SIGN_STYLE: Automatic
         DEVELOPMENT_TEAM: ""
+  # Oberflächentests im Simulator (XCUITest): „Was ist neu“, Start ohne Internet, Downloads – siehe
+  # .github/scripts/oberflaechentest.sh. Die Test-Hilfen der App gibt es nur im Debug-Build.
+  KinoLelUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: KinoLelUITests
+    dependencies:
+      - target: KinoLel
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: de.kinolel.app.uitests
+        TEST_TARGET_NAME: KinoLel
+        CODE_SIGN_STYLE: Automatic
+        DEVELOPMENT_TEAM: ""
 schemes:
   KinoLel:
     build:
@@ -70,5 +86,9 @@ schemes:
         KinoLel: all
     run:
       config: Debug
+    test:
+      config: Debug
+      targets:
+        - KinoLelUITests
     archive:
       config: Release

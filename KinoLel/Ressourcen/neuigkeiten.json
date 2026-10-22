@@ -1,0 +1,31 @@
+{
+  "versionen": [
+    {
+      "version": "0.1.2",
+      "de": [
+        "Filme und Folgen herunterladen und ohne Internet anschauen: neben „Abspielen“ gibt es jetzt den Knopf „Herunterladen“, bei Staffeln „Staffel herunterladen“.",
+        "Du wählst die Qualität: Original oder kleiner, damit weniger Speicher belegt wird. Heruntergeladen wird normalerweise nur im WLAN.",
+        "Ohne Internet öffnen sich deine Downloads von selbst. KinoLel merkt sich, wo du aufgehört hast – auch für deine anderen Geräte.",
+        "Alle Downloads findest du über dein Profilbild → „Downloads“. Dort kannst du sie auch wieder löschen.",
+        "Pause, Weiter, Stopp und Nachrichten vom Server erreichen jetzt auch den Player der App.",
+        "Nach jedem Update zeigt KinoLel einmal kurz, was neu ist – so wie hier – und sagt Bescheid, wenn es eine neue Version gibt. Ist dein iPhone auf Englisch eingestellt, erscheinen die Texte der App auf Englisch."
+      ],
+      "hu": [
+        "Filmek és epizódok letöltése és megnézése internet nélkül: a „Lejátszás” mellett most ott van a „Letöltés” gomb, évadoknál az „Évad letöltése”.",
+        "A minőséget te választod: eredeti vagy kisebb, hogy kevesebb helyet foglaljon. A letöltés alapból csak Wi-Fi-n történik.",
+        "Internet nélkül a letöltéseid maguktól megnyílnak. A KinoLel megjegyzi, hol tartottál – a többi eszközödön is.",
+        "Az összes letöltést a profilképeden → „Letöltések” alatt találod. Ott törölni is tudod őket.",
+        "A szerverről küldött szünet, folytatás, leállítás és üzenetek most az alkalmazás lejátszójába is eljutnak.",
+        "Minden frissítés után a KinoLel egyszer röviden megmutatja, mi az újdonság – mint most –, és szól, ha új verzió érhető el. Ha az iPhone-od angolra van állítva, az alkalmazás szövegei angolul jelennek meg."
+      ],
+      "en": [
+        "Download movies and episodes and watch them without internet: next to “Play” there is now a “Download” button, for seasons “Download season”.",
+        "You choose the quality: original or smaller to save space. By default, downloads only run on Wi-Fi.",
+        "Without internet your downloads open by themselves. KinoLel remembers where you stopped – also for your other devices.",
+        "You find all downloads via your profile picture → “Downloads”, where you can also delete them.",
+        "Pause, resume, stop and messages sent from the server now also reach the app's player.",
+        "After every update, KinoLel briefly shows once what's new – just like this – and tells you when a new version is available. If your iPhone is set to English, the app's texts now appear in English."
+      ]
+    }
+  ]
+}

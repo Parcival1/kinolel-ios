@@ -1,7 +1,8 @@
 # KinoLel-App (iOS): Build auf dem macOS-Runner.
 #
 # Ergebnis: unsignierte .ipa (zum Installieren braucht es eine Signatur – Apple-Developer-Konto oder
-# AltStore/Sideloadly, siehe TESTANLEITUNG.md) + Rauchtest im iOS-Simulator (Bildschirmfotos).
+# AltStore/Sideloadly, siehe TESTANLEITUNG.md) + Rauchtest im iOS-Simulator (Bildschirmfotos) + Oberflächentests
+# (XCUITest: „Was ist neu“, ohne Internet, Downloads; Secret KINOLEL_TEST_PW für den Download-Test).
 # Tag "v*" (z. B. v0.1.0): zusätzlich Vorab-Version unter "Releases".
 name: ios
 
@@ -75,6 +76,24 @@ jobs:
         with:
           name: rauchtest-bilder
           path: rauchtest/
+          if-no-files-found: ignore
+
+      # „Was ist neu“, Start ohne Internet, Downloads (mit Secret: herunterladen, offline abspielen, nachmelden, löschen)
+      - name: Oberflächentests im Simulator
+        env:
+          TEST_RUNNER_KINOLEL_TEST_PW: ${{ secrets.KINOLEL_TEST_PW }}
+          TEST_RUNNER_KINOLEL_TEST_ID: 6d36d6b857e1fc3e2813be03d92cba77
+        run: bash .github/scripts/oberflaechentest.sh
+
+      - name: Ergebnisse der Oberflächentests hochladen
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: oberflaechentest
+          path: |
+            oberflaeche/*.txt
+            oberflaeche/*.log
+            oberflaeche/bilder/
           if-no-files-found: ignore
 
       - name: Vorab-Version veröffentlichen (nur bei Tag v*)

@@ -1,4 +1,5 @@
 // KinoLel-App (iOS): Startbild wie auf kinolel.de – Logo + Lavendel-Ladekreis, Hinweis bei Ausfall.
+// Ohne Verbindung: Knopf „Meine Downloads (n)“ (wie die Android-App).
 import UIKit
 
 final class StartbildView: UIView {
@@ -7,6 +8,7 @@ final class StartbildView: UIView {
     private let logo = UIImageView(image: UIImage(named: "StartLogo"))
     private let status = UILabel()
     let knopf = UIButton(type: .system)
+    let downloadsKnopf = UIButton(type: .system)
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -46,7 +48,7 @@ final class StartbildView: UIView {
         status.translatesAutoresizingMaskIntoConstraints = false
         addSubview(status)
 
-        knopf.setTitle(Marke.ungarisch ? "Újra" : "Erneut versuchen", for: .normal)
+        knopf.setTitle(Text.nochmal, for: .normal)
         knopf.setTitleColor(Marke.grund, for: .normal)
         knopf.titleLabel?.font = .boldSystemFont(ofSize: 17)
         knopf.backgroundColor = Marke.lavendel
@@ -55,6 +57,13 @@ final class StartbildView: UIView {
         knopf.isHidden = true
         knopf.translatesAutoresizingMaskIntoConstraints = false
         addSubview(knopf)
+
+        downloadsKnopf.setTitleColor(Marke.lavendel, for: .normal)
+        downloadsKnopf.titleLabel?.font = .systemFont(ofSize: 17, weight: .semibold)
+        downloadsKnopf.isHidden = true
+        downloadsKnopf.accessibilityIdentifier = "kinolel.start.downloads"
+        downloadsKnopf.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(downloadsKnopf)
 
         NSLayoutConstraint.activate([
             kreis.widthAnchor.constraint(equalToConstant: 176),
@@ -69,22 +78,25 @@ final class StartbildView: UIView {
             status.leadingAnchor.constraint(equalTo: layoutMarginsGuide.leadingAnchor, constant: 16),
             status.trailingAnchor.constraint(equalTo: layoutMarginsGuide.trailingAnchor, constant: -16),
             knopf.topAnchor.constraint(equalTo: status.bottomAnchor, constant: 16),
-            knopf.centerXAnchor.constraint(equalTo: centerXAnchor)
+            knopf.centerXAnchor.constraint(equalTo: centerXAnchor),
+            downloadsKnopf.topAnchor.constraint(equalTo: knopf.bottomAnchor, constant: 14),
+            downloadsKnopf.centerXAnchor.constraint(equalTo: centerXAnchor)
         ])
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) nicht unterstützt") }
 
     func zeigeVerbinde() {
-        status.text = Marke.ungarisch ? "\(Marke.appName) – kapcsolódás …" : "Verbindung zu \(Marke.appName) wird hergestellt …"
+        status.text = Text.verbinde
         knopf.isHidden = true
         UIView.animate(withDuration: 0.4) { self.status.alpha = 1 }
     }
 
-    func zeigeFehler() {
-        status.text = Marke.ungarisch
-            ? "\(Marke.appName) most nem érhető el.\nKérjük, ellenőrizd az internetkapcsolatot – tovább próbálkozunk."
-            : "\(Marke.appName) ist gerade nicht erreichbar.\nBitte Internetverbindung prüfen – es wird weiter versucht."
+    /// downloads: Anzahl fertiger Downloads – dann Hinweis und Knopf „Meine Downloads (n)“
+    func zeigeFehler(downloads: Int = 0) {
+        status.text = Text.nichtErreichbar + (downloads > 0 ? "\n\n" + Text.offlineHinweis : "")
+        downloadsKnopf.setTitle(Text.offlineDownloads(downloads), for: .normal)
+        downloadsKnopf.isHidden = downloads == 0
         knopf.isHidden = false
         UIView.animate(withDuration: 0.4) { self.status.alpha = 1 }
     }
@@ -92,5 +104,6 @@ final class StartbildView: UIView {
     func zuruecksetzen() {
         status.alpha = 0
         knopf.isHidden = true
+        downloadsKnopf.isHidden = true
     }
 }

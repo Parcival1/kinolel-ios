@@ -108,8 +108,15 @@
 			if (item.SeriesName && item.ParentIndexNumber != null && item.IndexNumber != null) {
 				untertitel += ' · S' + item.ParentIndexNumber + ' E' + item.IndexNumber;
 			}
+			// Fokus von der angetippten Kachel nehmen (wie Android 0.1.3): sonst spielt die Weboberfläche bei „Fortsetzen“
+			// vom Server (Befehl „play“) die fokussierte Kachel ein zweites Mal ab.
+			try {
+				if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+			} catch (e) { /* egal */ }
 			window.postKinoLel('video.play', {
 				url: streamInfo.url,
+				// Heruntergeladen? Dann spielt die App die lokale Datei (Downloads.swift)
+				itemId: item.Id || null,
 				playerStartPositionTicks: streamInfo.playerStartPositionTicks || 0,
 				title: item.Name || '',
 				subtitle: untertitel,

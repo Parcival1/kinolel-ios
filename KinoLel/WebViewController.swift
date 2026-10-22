@@ -3,13 +3,20 @@
 import UIKit
 import WebKit
 
-final class WebViewController: UIViewController, WKNavigationDelegate, WKUIDelegate, WKScriptMessageHandler {
+final class WebViewController: UIViewController, WKNavigationDelegate, WKUIDelegate, WKScriptMessageHandler,
+    WKScriptMessageHandlerWithReply {
     private var webView: WKWebView!
     private let startbild = StartbildView()
     private let player = PlayerController()
     private var geladen = false
     private var hinweisTimer: Timer?
     private var neuTimer: Timer?
+    private var startFertig = false        // erste Seite geladen oder ausgefallen → „Was ist neu“, Update-Hinweis
+    private var offlineGeoeffnet = false   // Downloads ohne Internet schon einmal von selbst geöffnet
+    #if DEBUG
+    private var testGestartet = false
+    private var testListeGezeigt = false
+    #endif
 
     override var preferredStatusBarStyle: UIStatusBarStyle { .lightContent }
 
@@ -19,7 +26,8 @@ final class WebViewController: UIViewController, WKNavigationDelegate, WKUIDeleg
 
         let inhalt = WKUserContentController()
         inhalt.add(SchwacherHandler(self), name: "kinolel")
-        for quelle in [Skripte.appInfo(), Skripte.lade("nativeshell"), Skripte.lade("videoplayer")] {
+        inhalt.addScriptMessageHandler(SchwacherAntwortHandler(self), contentWorld: .page, name: "kinolelFrage")
+        for quelle in [Skripte.appInfo(), Skripte.lade("nativeshell"), Skripte.lade("videoplayer"), Skripte.lade("kinolelDownloads")] {
             inhalt.addUserScript(WKUserScript(source: quelle, injectionTime: .atDocumentStart, forMainFrameOnly: true))
         }
 
@@ -47,6 +55,7 @@ final class WebViewController: UIViewController, WKNavigationDelegate, WKUIDeleg
 
         startbild.translatesAutoresizingMaskIntoConstraints = false
         startbild.knopf.addTarget(self, action: #selector(nochmal), for: .touchUpInside)
+        startbild.downloadsKnopf.addTarget(self, action: #selector(downloadsZeigen), for: .touchUpInside)
         view.addSubview(startbild)
 
         NSLayoutConstraint.activate([
@@ -65,6 +74,17 @@ final class WebViewController: UIViewController, WKNavigationDelegate, WKUIDeleg
         laden()
     }
 
+    #if DEBUG
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        // Test: Download-Liste gleich öffnen (-KinoLelTestDownloads YES), auch ohne Internet
+        if !testListeGezeigt && UserDefaults.standard.bool(forKey: "KinoLelTestDownloads") {
+            testListeGezeigt = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2) { self.downloadsZeigen() }
+        }
+    }
+    #endif
+
     // MARK: Laden / Ausfall
 
     private func laden() {
@@ -75,7 +95,10 @@ final class WebViewController: UIViewController, WKNavigationDelegate, WKUIDeleg
             guard let self, !self.geladen else { return }
             self.startbild.zeigeVerbinde()
         }
-        let ziel = Marke.serverURL.appendingPathComponent("web/")
+        var ziel = Marke.serverURL.appendingPathComponent("web/")
+        #if DEBUG
+        if Downloads.testOffline, let ohneNetz = URL(string: "https://offline.invalid/web/") { ziel = ohneNetz }
+        #endif
         webView.load(URLRequest(url: ziel, cachePolicy: .useProtocolCachePolicy, timeoutInterval: 20))
     }
 
@@ -90,9 +113,21 @@ final class WebViewController: UIViewController, WKNavigationDelegate, WKUIDeleg
         view.bringSubviewToFront(startbild)
         startbild.isHidden = false
         startbild.alpha = 1
-        startbild.zeigeFehler()
+        let fertige = Downloads.shared.anzahlFertig
+        startbild.zeigeFehler(downloads: fertige)
         neuTimer?.invalidate()
         neuTimer = Timer.scheduledTimer(withTimeInterval: 15, repeats: false) { [weak self] _ in self?.laden() }
+
+        // Ohne Internet die Downloads von selbst öffnen (einmal je Start, wie die Android-App)
+        var ohneNetz = !Downloads.shared.online || (ns.domain == NSURLErrorDomain && ns.code == NSURLErrorNotConnectedToInternet)
+        #if DEBUG
+        if Downloads.testOffline { ohneNetz = true }
+        #endif
+        if ohneNetz && fertige > 0 && !offlineGeoeffnet && presentedViewController == nil {
+            offlineGeoeffnet = true
+            downloadsZeigen()
+        }
+        startAbgeschlossen()
     }
 
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
@@ -105,6 +140,12 @@ final class WebViewController: UIViewController, WKNavigationDelegate, WKUIDeleg
         } completion: { _ in
             self.startbild.isHidden = true
         }
+        // Offline geschaute Downloads: Position an Jellyfin melden (Anmeldung kommt aus der Seite)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 5) { Downloads.shared.nachmelden() }
+        startAbgeschlossen()
+        #if DEBUG
+        testHilfen()
+        #endif
     }
 
     func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) { ausfall(error) }
@@ -118,6 +159,26 @@ final class WebViewController: UIViewController, WKNavigationDelegate, WKUIDeleg
         webView.reload()
     }
 
+    // MARK: Nach dem Start: „Was ist neu“, dann Update-Hinweis
+
+    private func startAbgeschlossen() {
+        guard !startFertig else { return }
+        startFertig = true
+        meldungenZeigen()
+    }
+
+    /// Nicht über den Player, die Download-Liste oder eine andere Meldung legen – dann später erneut versuchen
+    private func meldungenZeigen() {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) { [weak self] in
+            guard let self else { return }
+            guard self.presentedViewController == nil else { return self.meldungenZeigen() }
+            Neuigkeiten.zeigen(auf: self) { [weak self] in
+                guard let self else { return }
+                Aktualisierung.pruefen(auf: self)
+            }
+        }
+    }
+
     // MARK: Links
 
     func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction,
@@ -125,17 +186,34 @@ final class WebViewController: UIViewController, WKNavigationDelegate, WKUIDeleg
         guard let url = navigationAction.request.url else { return decisionHandler(.allow) }
         let eigen = url.host == Marke.serverURL.host || url.scheme == "about" || url.scheme == "blob" || url.scheme == "data"
         if !eigen && navigationAction.navigationType == .linkActivated {
-            UIApplication.shared.open(url)
+            oeffneExtern(url)
             return decisionHandler(.cancel)
         }
         decisionHandler(.allow)
     }
 
-    // target=_blank / window.open (z. B. KinoLel Wünsche) -> Safari
+    // target=_blank / window.open (z. B. KinoLel Wünsche) -> App „KinoLel Wünsche“ bzw. Safari
     func webView(_ webView: WKWebView, createWebViewWith configuration: WKWebViewConfiguration,
                  for navigationAction: WKNavigationAction, windowFeatures: WKWindowFeatures) -> WKWebView? {
-        if let url = navigationAction.request.url { UIApplication.shared.open(url) }
+        if let url = navigationAction.request.url { oeffneExtern(url) }
         return nil
+    }
+
+    /// Links auf KinoLel Wünsche direkt in der App „KinoLel Wünsche“ öffnen (kinolelwuensche://), alles andere in Safari
+    /// (wie die Android-App ab 0.1.2)
+    private func oeffneExtern(_ url: URL) {
+        let wuensche = ["wuensche.kinolel.de", "kivansagok.kinolel.de"]
+        if let host = url.host?.lowercased(), wuensche.contains(host),
+           var teile = URLComponents(url: url, resolvingAgainstBaseURL: false) {
+            teile.scheme = "kinolelwuensche"
+            if let app = teile.url {
+                UIApplication.shared.open(app) { geoeffnet in
+                    if !geoeffnet { UIApplication.shared.open(url) }
+                }
+                return
+            }
+        }
+        UIApplication.shared.open(url)
     }
 
     // MARK: Nachrichten aus der Weboberfläche (nativeshell.js / videoplayer.js)
@@ -152,9 +230,18 @@ final class WebViewController: UIViewController, WKNavigationDelegate, WKUIDeleg
         case "video.stop": player.stoppen(manuell: false)
         case "video.seek":
             if let ms = daten as? Double { player.springe(ms: ms) }
+        case "nachricht":
+            // Nachricht vom Server (Dashboard „Nachricht senden“, KinoLel-Streams-Grenze): über dem nativen Player zeigen.
+            // Ohne laufenden Player zeigt sie die Weboberfläche selbst.
+            guard player.laeuft, let d = daten as? [String: Any] else { break }
+            let dauer = ((d["dauer"] as? Double) ?? 0) / 1000
+            NSLog("KinoLel: Nachricht vom Server über dem Player")
+            Hinweis.zeigen(d["text"] as? String ?? "", kopf: d["kopf"] as? String, sekunden: dauer > 0 ? dauer : 10, in: view.window)
+        case "downloads.oeffnen":
+            downloadsZeigen()
         case "openUrl":
             if let text = (daten as? [String: Any])?["url"] as? String, let url = URL(string: text, relativeTo: Marke.serverURL) {
-                UIApplication.shared.open(url)
+                oeffneExtern(url.absoluteURL)
             }
         case "console.error", "console.warn":
             NSLog("KinoLel Web %@: %@", ereignis, String(describing: daten ?? ""))
@@ -162,6 +249,155 @@ final class WebViewController: UIViewController, WKNavigationDelegate, WKUIDeleg
             break
         }
     }
+
+    /// Anfragen mit Antwort (window.KinoLelNative.frage → Promise)
+    func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage,
+                               replyHandler: @escaping @MainActor @Sendable (Any?, String?) -> Void) {
+        guard let nachricht = message.body as? [String: Any], let ereignis = nachricht["event"] as? String else {
+            return replyHandler(nil, "ungültige Anfrage")
+        }
+        let daten = nachricht["data"]
+        switch ereignis {
+        case "anmeldung":
+            if let d = daten as? [String: Any] { anmeldungMerken(d) }
+            replyHandler(true, nil)
+        case "dl.status":
+            replyHandler(Downloads.shared.status(daten as? [String] ?? []), nil)
+        case "dl.anfragen":
+            downloadAnfragen(daten as? [String: Any] ?? [:])
+            replyHandler(true, nil)
+        default:
+            replyHandler(nil, "unbekannt: \(ereignis)")
+        }
+    }
+
+    // MARK: Downloads
+
+    private func anmeldungMerken(_ d: [String: Any]) {
+        guard let token = d["token"] as? String, !token.isEmpty, let userId = d["userId"] as? String,
+              let deviceId = d["deviceId"] as? String else { return }
+        Schluesselbund.schreiben(Anmeldung(token: token, userId: userId, deviceId: deviceId))
+    }
+
+    /// Knopf „Herunterladen“ bzw. „…“-Menü → Qualität wählen → Downloads starten
+    private func downloadAnfragen(_ d: [String: Any]) {
+        if let a = d["anmeldung"] as? [String: Any] { anmeldungMerken(a) }
+        guard (d["fehler"] as? Bool) != true,
+              let json = try? JSONSerialization.data(withJSONObject: d["titel"] as? [Any] ?? []),
+              let titel = try? JSONDecoder().decode([WebTitel].self, from: json) else {
+            return Hinweis.zeigen(Text.keineVerbindung, in: view.window)
+        }
+        let mitQuelle = titel.filter { $0.quelle != nil }
+        let stufen = DownloadQualitaet.verfuegbar(mitQuelle)
+        guard !stufen.isEmpty, let anmeldung = Schluesselbund.lesen() else {
+            return Hinweis.zeigen(Text.nichts, in: view.window)
+        }
+        qualitaetWaehlen(mitQuelle, stufen, anmeldung)
+    }
+
+    private func qualitaetWaehlen(_ titel: [WebTitel], _ stufen: [DownloadQualitaet], _ anmeldung: Anmeldung) {
+        let name: String
+        if titel.count == 1 {
+            name = titel[0].name ?? ""
+        } else if titel.allSatisfy({ $0.typ == "Episode" }) {
+            name = Text.dlFolgen(titel.count)
+        } else {
+            name = Text.dlTitel(titel.count)
+        }
+        let frei = Downloads.frei
+        var hinweise = [Text.frei(Downloads.menge(frei))]
+        if stufen.contains(where: { $0 != .original }) { hinweise.append(Text.hinweisKlein) }
+        if Downloads.shared.nurWlan { hinweise.append(Text.nurWlanHinweis) }
+
+        let auswahl = UIAlertController(title: Text.dlUeberschrift(name), message: hinweise.joined(separator: "\n\n"),
+                                        preferredStyle: .actionSheet)
+        for stufe in stufen {
+            let groesse = titel.reduce(Int64(0)) { $0 + stufe.groesse($1) }
+            let passt = frei <= 0 || groesse < frei
+            let text = passt ? (groesse > 0 ? "\(stufe.name) · ≈ \(Downloads.menge(groesse))" : stufe.name) : "\(stufe.name) · \(Text.zuGross)"
+            let aktion = UIAlertAction(title: text, style: .default) { [weak self] _ in
+                let neu = Downloads.shared.einreihen(titel, qualitaet: stufe, anmeldung: anmeldung)
+                guard neu > 0 else { self?.downloadsZeigen(); return }
+                let sofort = !Downloads.shared.nurWlan || Downloads.shared.wlan
+                Hinweis.zeigen(sofort ? Text.gestartet(neu) : Text.wartetWlan(neu), in: self?.view.window)
+            }
+            aktion.isEnabled = passt
+            auswahl.addAction(aktion)
+        }
+        auswahl.addAction(UIAlertAction(title: Text.abbrechen, style: .cancel))
+        if let blase = auswahl.popoverPresentationController {
+            blase.sourceView = view
+            blase.sourceRect = CGRect(x: view.bounds.midX, y: view.bounds.midY, width: 0, height: 0)
+            blase.permittedArrowDirections = []
+        }
+        (presentedViewController ?? self).present(auswahl, animated: true)
+    }
+
+    @objc private func downloadsZeigen() {
+        if let nav = presentedViewController as? UINavigationController, nav.viewControllers.first is DownloadsViewController { return }
+        let liste = DownloadsViewController()
+        liste.abspielen = { [weak self] t in self?.player.lokalAbspielen(t) }
+        let nav = UINavigationController(rootViewController: liste)
+        nav.overrideUserInterfaceStyle = .dark
+        nav.navigationBar.tintColor = Marke.lavendel
+        (presentedViewController ?? self).present(nav, animated: true)
+    }
+
+    // MARK: Tests im Simulator
+
+    #if DEBUG
+    /// XCUITest (nur Debug-Build): Anmeldung mit Kennwort aus der Testumgebung (KINOLEL_TEST_PW, nie in Logs),
+    /// Sprung zu einem Titel (-KinoLelTestZiel '#/details?id=…'), Download-Liste öffnen (-KinoLelTestDownloads YES),
+    /// Abmelden (-KinoLelTestAbmelden YES; vorher Serverposition von -KinoLelTestZuruecksetzen <id> melden und auf 0
+    /// setzen). Ergebnisse als „KinoLel-Test: …“ im Systemprotokoll.
+    private func testHilfen() {
+        guard !testGestartet else { return }
+        testGestartet = true
+        let vorlieben = UserDefaults.standard
+        let umgebung = ProcessInfo.processInfo.environment
+        let kennwort = umgebung["KINOLEL_TEST_PW"] ?? ""
+        let ziel = vorlieben.string(forKey: "KinoLelTestZiel") ?? ""
+        let abmelden = vorlieben.bool(forKey: "KinoLelTestAbmelden")
+        let zuruecksetzen = vorlieben.string(forKey: "KinoLelTestZuruecksetzen") ?? ""
+        guard !kennwort.isEmpty || !ziel.isEmpty || abmelden else { return }
+        let werte: [Any] = [umgebung["KINOLEL_TEST_BENUTZER"] ?? "kinolel-hilfe", kennwort, ziel, abmelden, zuruecksetzen]
+        guard let json = try? JSONSerialization.data(withJSONObject: werte), let text = String(data: json, encoding: .utf8) else { return }
+        let skript = """
+        (async function (w) {
+          const [benutzer, kennwort, ziel, abmelden, zuruecksetzen] = w;
+          const log = (t) => postKinoLel('console.warn', 'KinoLel-Test: ' + t);
+          const warte = async (f, s) => { for (let i = 0; i < s * 2; i++) { try { if (f()) return true; } catch (e) {} await new Promise(r => setTimeout(r, 500)); } return false; };
+          const angemeldet = () => !!(window.ApiClient && ApiClient.accessToken() && ApiClient.getCurrentUserId());
+          if (kennwort && await warte(() => angemeldet() || document.querySelector('#txtManualName'), 60) && !angemeldet()) {
+            const n = document.querySelector('#txtManualName');
+            n.value = benutzer; n.dispatchEvent(new Event('input', { bubbles: true }));
+            const p = document.querySelector('#txtManualPassword');
+            p.value = kennwort; p.dispatchEvent(new Event('input', { bubbles: true }));
+            document.querySelector('#loginPage .manualLoginForm button[type=submit]').click();
+            log('Anmeldung abgeschickt');
+          }
+          if (!await warte(() => angemeldet() && /^#\\/home/.test(location.hash), 60)) { log('nicht angemeldet'); return; }
+          log('angemeldet');
+          if (abmelden) {
+            // Erst die App nachmelden lassen (5 s nach dem Laden), dann Serverstand prüfen und zurücksetzen
+            await new Promise(r => setTimeout(r, 15000));
+            if (zuruecksetzen) {
+              const it = await ApiClient.getItem(ApiClient.getCurrentUserId(), zuruecksetzen);
+              log('Serverposition ' + ((it.UserData && it.UserData.PlaybackPositionTicks) || 0));
+              await ApiClient.ajax({ type: 'POST', url: ApiClient.getUrl('UserItems/' + zuruecksetzen + '/UserData'),
+                data: JSON.stringify({ PlaybackPositionTicks: 0, Played: false }), contentType: 'application/json' });
+              log('Serverposition zurückgesetzt');
+            }
+            await ApiClient.logout();
+            log('abgemeldet');
+            return;
+          }
+          if (ziel) { location.hash = ziel + '&serverId=' + ApiClient.serverId(); log('Ziel geöffnet'); }
+        })(\(text));
+        """
+        webView.evaluateJavaScript(skript, completionHandler: nil)
+    }
+    #endif
 }
 
 /// Verhindert einen Speicher-Kreis WKUserContentController -> Handler -> WebView
@@ -170,6 +406,16 @@ private final class SchwacherHandler: NSObject, WKScriptMessageHandler {
     init(_ ziel: WKScriptMessageHandler) { self.ziel = ziel }
     func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
         ziel?.userContentController(userContentController, didReceive: message)
+    }
+}
+
+private final class SchwacherAntwortHandler: NSObject, WKScriptMessageHandlerWithReply {
+    weak var ziel: WKScriptMessageHandlerWithReply?
+    init(_ ziel: WKScriptMessageHandlerWithReply) { self.ziel = ziel }
+    func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage,
+                               replyHandler: @escaping @MainActor @Sendable (Any?, String?) -> Void) {
+        guard let ziel else { return replyHandler(nil, "beendet") }
+        ziel.userContentController(userContentController, didReceive: message, replyHandler: replyHandler)
     }
 }
 
