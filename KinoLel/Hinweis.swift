@@ -6,18 +6,18 @@ enum Hinweis {
     static func zeigen(_ text: String, kopf: String? = nil, sekunden: TimeInterval = 4, in fenster: UIWindow?) {
         guard let fenster, !(text.isEmpty && (kopf ?? "").isEmpty) else { return }
         let band = UIView()
-        band.backgroundColor = UIColor(red: 0x16 / 255.0, green: 0x1B / 255.0, blue: 0x2A / 255.0, alpha: 0.97)
+        band.backgroundColor = KinoLelDialog.grund.withAlphaComponent(0.97)
         band.layer.cornerRadius = 12
-        band.layer.borderColor = Marke.lavendel.withAlphaComponent(0.6).cgColor
+        band.layer.borderColor = UIColor.white.withAlphaComponent(0.08).cgColor
         band.layer.borderWidth = 1
         band.alpha = 0
         band.translatesAutoresizingMaskIntoConstraints = false
 
         let inhalt = NSMutableAttributedString()
-        let schrift = UIFont.preferredFont(forTextStyle: .subheadline)
+        let schrift = Schrift.normal(15)
         if let kopf, !kopf.isEmpty {
             inhalt.append(NSAttributedString(string: kopf + (text.isEmpty ? "" : "\n"), attributes: [
-                .font: UIFont.boldSystemFont(ofSize: schrift.pointSize + 1), .foregroundColor: Marke.lavendel
+                .font: Schrift.fett(16), .foregroundColor: Marke.lavendel
             ]))
         }
         inhalt.append(NSAttributedString(string: text, attributes: [.font: schrift, .foregroundColor: UIColor.white]))

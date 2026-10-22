@@ -41,7 +41,7 @@ final class StartbildView: UIView {
         kreis.addSubview(logo)
 
         status.textColor = Marke.text
-        status.font = .preferredFont(forTextStyle: .body)
+        status.font = Schrift.normal(17)
         status.textAlignment = .center
         status.numberOfLines = 0
         status.alpha = 0
@@ -50,7 +50,7 @@ final class StartbildView: UIView {
 
         knopf.setTitle(Text.nochmal, for: .normal)
         knopf.setTitleColor(Marke.grund, for: .normal)
-        knopf.titleLabel?.font = .boldSystemFont(ofSize: 17)
+        knopf.titleLabel?.font = Schrift.fett(17)
         knopf.backgroundColor = Marke.lavendel
         knopf.layer.cornerRadius = 6
         knopf.contentEdgeInsets = UIEdgeInsets(top: 10, left: 22, bottom: 10, right: 22)
@@ -59,7 +59,7 @@ final class StartbildView: UIView {
         addSubview(knopf)
 
         downloadsKnopf.setTitleColor(Marke.lavendel, for: .normal)
-        downloadsKnopf.titleLabel?.font = .systemFont(ofSize: 17, weight: .semibold)
+        downloadsKnopf.titleLabel?.font = Schrift.fett(17)
         downloadsKnopf.isHidden = true
         downloadsKnopf.accessibilityIdentifier = "kinolel.start.downloads"
         downloadsKnopf.translatesAutoresizingMaskIntoConstraints = false

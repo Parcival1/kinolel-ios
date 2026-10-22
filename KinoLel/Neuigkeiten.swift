@@ -78,119 +78,37 @@ enum Neuigkeiten {
     /// Meldung zeigen (einmal); fertig wird nach dem Schließen aufgerufen – oder sofort, wenn es nichts zu zeigen gibt
     static func zeigen(auf gastgeber: UIViewController, fertig: @escaping () -> Void) {
         guard !offen.isEmpty else { return fertig() }
-        let ansicht = NeuigkeitenViewController(eintraege: offen, fertig: fertig)
+        let dialog = KinoLelDialog(titel: Text.neuTitel(Marke.version), attributiert: inhalt(offen),
+                                   knoepfe: [KinoLelDialog.Knopf(titel: Text.neuOk, art: .haupt, kennung: "kinolel.neuigkeiten.ok")],
+                                   titelKennung: "kinolel.neuigkeiten.titel")
+        dialog.beimSchliessen = fertig
         offen = []
-        gastgeber.present(ansicht, animated: true)
-    }
-}
-
-final class NeuigkeitenViewController: UIViewController {
-    private let eintraege: [Neuigkeiten.Eintrag]
-    private let fertig: () -> Void
-
-    init(eintraege: [Neuigkeiten.Eintrag], fertig: @escaping () -> Void) {
-        self.eintraege = eintraege
-        self.fertig = fertig
-        super.init(nibName: nil, bundle: nil)
-        modalPresentationStyle = .pageSheet
-        if let blatt = sheetPresentationController {
-            blatt.detents = [.medium(), .large()]
-            blatt.prefersGrabberVisible = true
-            // Viel Text: gleich ganz aufklappen, damit nichts abgeschnitten wirkt
-            if eintraege.reduce(0, { $0 + $1.punkte.count }) > 3 { blatt.selectedDetentIdentifier = .large }
-        }
-    }
-
-    required init?(coder: NSCoder) { fatalError("init(coder:) nicht unterstützt") }
-
-    override func viewDidLoad() {
-        super.viewDidLoad()
-        overrideUserInterfaceStyle = .dark
-        view.backgroundColor = Marke.grund
-
-        let ueberschrift = UILabel()
-        ueberschrift.text = Text.neuTitel(Marke.version)
-        ueberschrift.font = .preferredFont(forTextStyle: .title2).fett
-        ueberschrift.textColor = Marke.lavendel
-        ueberschrift.numberOfLines = 0
-        ueberschrift.accessibilityIdentifier = "kinolel.neuigkeiten.titel"
-
-        let text = UITextView()
-        text.isEditable = false
-        text.backgroundColor = .clear
-        text.textContainerInset = .zero
-        text.textContainer.lineFragmentPadding = 0
-        text.attributedText = inhalt()
-        text.accessibilityIdentifier = "kinolel.neuigkeiten.text"
-
-        let knopf = UIButton(type: .system)
-        knopf.setTitle(Text.neuOk, for: .normal)
-        knopf.setTitleColor(Marke.grund, for: .normal)
-        knopf.titleLabel?.font = .boldSystemFont(ofSize: 17)
-        knopf.backgroundColor = Marke.lavendel
-        knopf.layer.cornerRadius = 10
-        knopf.accessibilityIdentifier = "kinolel.neuigkeiten.ok"
-        knopf.addTarget(self, action: #selector(schliessen), for: .touchUpInside)
-
-        for v in [ueberschrift, text, knopf] {
-            v.translatesAutoresizingMaskIntoConstraints = false
-            view.addSubview(v)
-        }
-        let rand = view.layoutMarginsGuide
-        NSLayoutConstraint.activate([
-            ueberschrift.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 28),
-            ueberschrift.leadingAnchor.constraint(equalTo: rand.leadingAnchor, constant: 8),
-            ueberschrift.trailingAnchor.constraint(equalTo: rand.trailingAnchor, constant: -8),
-            text.topAnchor.constraint(equalTo: ueberschrift.bottomAnchor, constant: 16),
-            text.leadingAnchor.constraint(equalTo: ueberschrift.leadingAnchor),
-            text.trailingAnchor.constraint(equalTo: ueberschrift.trailingAnchor),
-            text.bottomAnchor.constraint(equalTo: knopf.topAnchor, constant: -16),
-            knopf.leadingAnchor.constraint(equalTo: ueberschrift.leadingAnchor),
-            knopf.trailingAnchor.constraint(equalTo: ueberschrift.trailingAnchor),
-            knopf.heightAnchor.constraint(equalToConstant: 50),
-            knopf.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -16)
-        ])
+        dialog.zeigen(auf: gastgeber)
     }
 
     /// Versionen fett (nur bei mehreren), Punkte mit hängendem Einzug
-    private func inhalt() -> NSAttributedString {
+    private static func inhalt(_ eintraege: [Eintrag]) -> NSAttributedString {
         let ergebnis = NSMutableAttributedString()
-        let normal = UIFont.preferredFont(forTextStyle: .body)
         let punkt = NSMutableParagraphStyle()
         punkt.headIndent = 18
-        punkt.firstLineHeadIndent = 0
         punkt.tabStops = [NSTextTab(textAlignment: .left, location: 18)]
         punkt.paragraphSpacing = 8
+        punkt.lineSpacing = 2
         let kopf = NSMutableParagraphStyle()
         kopf.paragraphSpacingBefore = 6
         kopf.paragraphSpacing = 6
         for (i, eintrag) in eintraege.enumerated() {
             if eintraege.count > 1 {
                 ergebnis.append(NSAttributedString(string: (i > 0 ? "\n" : "") + Text.neuVersion(eintrag.version) + "\n", attributes: [
-                    .font: normal.fett, .foregroundColor: UIColor.white.withAlphaComponent(0.85), .paragraphStyle: kopf
+                    .font: Schrift.fett(16), .foregroundColor: UIColor.white, .paragraphStyle: kopf
                 ]))
             }
             for p in eintrag.punkte {
                 ergebnis.append(NSAttributedString(string: "•\t" + p + "\n", attributes: [
-                    .font: normal, .foregroundColor: UIColor.white, .paragraphStyle: punkt
+                    .font: Schrift.normal(16), .foregroundColor: UIColor(white: 0.88, alpha: 1), .paragraphStyle: punkt
                 ]))
             }
         }
         return ergebnis
-    }
-
-    @objc private func schliessen() { dismiss(animated: true) }
-
-    override func viewDidDisappear(_ animated: Bool) {
-        super.viewDidDisappear(animated)
-        // Knopf oder Wegwischen des Blatts: danach weitermachen (z. B. Update-Hinweis)
-        if isBeingDismissed || presentingViewController == nil { fertig() }
-    }
-}
-
-private extension UIFont {
-    var fett: UIFont {
-        guard let beschreibung = fontDescriptor.withSymbolicTraits(.traitBold) else { return self }
-        return UIFont(descriptor: beschreibung, size: 0)
     }
 }

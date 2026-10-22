@@ -37,11 +37,12 @@ enum Aktualisierung {
                     UserDefaults.standard.removeObject(forKey: zuletztSchluessel)
                     return
                 }
-                let hinweis = UIAlertController(title: Text.updateTitel, message: Text.updateText(Versionsnummer.text(beste)),
-                                                preferredStyle: .alert)
-                hinweis.addAction(UIAlertAction(title: Text.updateSpaeter, style: .cancel))
-                hinweis.addAction(UIAlertAction(title: Text.updateJetzt, style: .default) { _ in oeffne(["sidestore://", "altstore://"], sonst: seite) })
-                gastgeber.present(hinweis, animated: true)
+                KinoLelDialog(titel: Text.updateTitel, text: Text.updateText(Versionsnummer.text(beste)), knoepfe: [
+                    KinoLelDialog.Knopf(titel: Text.updateSpaeter),
+                    KinoLelDialog.Knopf(titel: Text.updateJetzt, art: .haupt, kennung: "kinolel.update.jetzt") {
+                        oeffne(["sidestore://", "altstore://"], sonst: seite)
+                    }
+                ]).zeigen(auf: gastgeber)
             }
         }.resume()
     }

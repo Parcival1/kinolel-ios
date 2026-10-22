@@ -13,7 +13,7 @@ settings:
     KINOLEL_APP_NAME: KinoLel
     KINOLEL_SERVER_URL: https://kinolel.de
     PRODUCT_BUNDLE_IDENTIFIER: de.kinolel.app
-    MARKETING_VERSION: "0.1.2"
+    MARKETING_VERSION: "0.1.3"
     CURRENT_PROJECT_VERSION: "1"
     SWIFT_VERSION: "5.0"
     TARGETED_DEVICE_FAMILY: "1,2"
@@ -40,6 +40,8 @@ targets:
         ITSAppUsesNonExemptEncryption: false
         # Kernanforderung (Lel): Wiedergabe läuft weiter bei gesperrtem Bildschirm / im Hintergrund
         UIBackgroundModes: [audio]
+        # Schrift der Weboberfläche (Inter, Auszug Latein inkl. Ungarisch, Lizenz marke/Inter-OFL.txt)
+        UIAppFonts: [Inter-Regular.otf, Inter-SemiBold.otf]
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: false
         UILaunchScreen:

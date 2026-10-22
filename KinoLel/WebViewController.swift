@@ -309,28 +309,19 @@ final class WebViewController: UIViewController, WKNavigationDelegate, WKUIDeleg
         if stufen.contains(where: { $0 != .original }) { hinweise.append(Text.hinweisKlein) }
         if Downloads.shared.nurWlan { hinweise.append(Text.nurWlanHinweis) }
 
-        let auswahl = UIAlertController(title: Text.dlUeberschrift(name), message: hinweise.joined(separator: "\n\n"),
-                                        preferredStyle: .actionSheet)
-        for stufe in stufen {
+        var knoepfe: [KinoLelDialog.Knopf] = stufen.map { stufe in
             let groesse = titel.reduce(Int64(0)) { $0 + stufe.groesse($1) }
             let passt = frei <= 0 || groesse < frei
             let text = passt ? (groesse > 0 ? "\(stufe.name) · ≈ \(Downloads.menge(groesse))" : stufe.name) : "\(stufe.name) · \(Text.zuGross)"
-            let aktion = UIAlertAction(title: text, style: .default) { [weak self] _ in
+            return KinoLelDialog.Knopf(titel: text, art: .wahl, aktiv: passt, kennung: "kinolel.qualitaet.\(stufe.rawValue)") { [weak self] in
                 let neu = Downloads.shared.einreihen(titel, qualitaet: stufe, anmeldung: anmeldung)
                 guard neu > 0 else { self?.downloadsZeigen(); return }
                 let sofort = !Downloads.shared.nurWlan || Downloads.shared.wlan
                 Hinweis.zeigen(sofort ? Text.gestartet(neu) : Text.wartetWlan(neu), in: self?.view.window)
             }
-            aktion.isEnabled = passt
-            auswahl.addAction(aktion)
         }
-        auswahl.addAction(UIAlertAction(title: Text.abbrechen, style: .cancel))
-        if let blase = auswahl.popoverPresentationController {
-            blase.sourceView = view
-            blase.sourceRect = CGRect(x: view.bounds.midX, y: view.bounds.midY, width: 0, height: 0)
-            blase.permittedArrowDirections = []
-        }
-        (presentedViewController ?? self).present(auswahl, animated: true)
+        knoepfe.append(KinoLelDialog.Knopf(titel: Text.abbrechen))
+        KinoLelDialog(titel: Text.dlUeberschrift(name), text: hinweise.joined(separator: "\n\n"), knoepfe: knoepfe).zeigen(auf: self)
     }
 
     @objc private func downloadsZeigen() {

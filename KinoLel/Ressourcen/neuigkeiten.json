@@ -1,6 +1,21 @@
 {
   "versionen": [
     {
+      "version": "0.1.3",
+      "de": [
+        "Meldungen und Fragen der App (wie diese hier) erscheinen jetzt im KinoLel-Design: dunkel, mit lila Knopf und der Schrift der Weboberfläche.",
+        "Updates kommen über SideStore: „Aktualisieren“ öffnet SideStore, dort bei KinoLel auf „Update“ tippen."
+      ],
+      "hu": [
+        "Az app üzenetei és kérdései (mint ez is) most KinoLel-stílusban jelennek meg: sötéten, lila gombbal és a webes felület betűtípusával.",
+        "A frissítések a SideStore-on keresztül érkeznek: a „Frissítés” megnyitja a SideStore-t, ott koppints a KinoLel melletti „Update” gombra."
+      ],
+      "en": [
+        "The app's messages and questions (like this one) now appear in the KinoLel design: dark, with a purple button and the web interface's font.",
+        "Updates come through SideStore: “Update” opens SideStore, then tap “Update” next to KinoLel."
+      ]
+    },
+    {
       "version": "0.1.2",
       "de": [
         "Filme und Folgen herunterladen und ohne Internet anschauen: neben „Abspielen“ gibt es jetzt den Knopf „Herunterladen“, bei Staffeln „Staffel herunterladen“.",

@@ -31,8 +31,8 @@ final class KinoLelUITests: XCTestCase {
     // MARK: 1. Was ist neu
 
     func test1Neuigkeiten() {
-        for (sprache, titel) in [("de", "Neu in KinoLel 0.1.2"), ("en", "New in KinoLel 0.1.2"), ("hu", "Újdonságok – KinoLel 0.1.2")] {
-            let a = app(["-KinoLelTestNeuigkeitenSeit", "0.1.1"], sprache: sprache)
+        for (sprache, titel) in [("de", "Neu in KinoLel 0.1.3"), ("en", "New in KinoLel 0.1.3"), ("hu", "Újdonságok – KinoLel 0.1.3")] {
+            let a = app(["-KinoLelTestNeuigkeitenSeit", "0.1.2"], sprache: sprache)
             a.launch()
             let ueberschrift = a.staticTexts["kinolel.neuigkeiten.titel"]
             XCTAssertTrue(ueberschrift.waitForExistence(timeout: 60), "Meldung „Was ist neu“ fehlt (\(sprache))")
@@ -118,7 +118,7 @@ final class KinoLelUITests: XCTestCase {
         bild("3g-online-liste")
         sleep(8)
         zeileOnline.buttons["kinolel.download.\(id).loeschen"].tap()
-        let loeschen = c.alerts.buttons["Löschen"]
+        let loeschen = c.buttons["kinolel.dialog.loeschen"]
         XCTAssertTrue(loeschen.waitForExistence(timeout: 10), "Rückfrage „Löschen“ fehlt")
         loeschen.tap()
         XCTAssertTrue(zeileOnline.waitForNonExistence(timeout: 10), "Download nicht gelöscht")

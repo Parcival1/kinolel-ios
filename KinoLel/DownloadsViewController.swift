@@ -32,7 +32,7 @@ final class DownloadsViewController: UITableViewController {
         leerText.textColor = Marke.text
         leerText.numberOfLines = 0
         leerText.textAlignment = .center
-        leerText.font = .preferredFont(forTextStyle: .body)
+        leerText.font = Schrift.normal(17)
 
         NotificationCenter.default.addObserver(self, selector: #selector(aktualisieren), name: Downloads.geaendert, object: nil)
         aktualisieren()
@@ -68,10 +68,13 @@ final class DownloadsViewController: UITableViewController {
     }
 
     private func loeschenFragen(_ t: OfflineTitel) {
-        let frage = UIAlertController(title: Text.loeschen, message: t.name, preferredStyle: .alert)
-        frage.addAction(UIAlertAction(title: Text.abbrechen, style: .cancel))
-        frage.addAction(UIAlertAction(title: Text.loeschenKnopf, style: .destructive) { _ in Downloads.shared.loeschen(t.id) })
-        present(frage, animated: true)
+        let name = t.folgenZeile.isEmpty ? t.name : "\(t.folgenZeile) – \(t.name)"
+        KinoLelDialog(titel: Text.loeschen, text: name, knoepfe: [
+            KinoLelDialog.Knopf(titel: Text.abbrechen),
+            KinoLelDialog.Knopf(titel: Text.loeschenKnopf, art: .haupt, kennung: "kinolel.dialog.loeschen") {
+                Downloads.shared.loeschen(t.id)
+            }
+        ]).zeigen(auf: self)
     }
 
     // MARK: Tabelle
@@ -166,6 +169,7 @@ final class DownloadZelle: UITableViewCell {
 
         var inhalt = UIListContentConfiguration.subtitleCell()
         inhalt.text = t.name
+        inhalt.textProperties.font = Schrift.fett(17)
         inhalt.textProperties.numberOfLines = 2
         var zeilen: [String] = []
         if !t.folgenZeile.isEmpty { zeilen.append(t.folgenZeile) }
@@ -173,6 +177,7 @@ final class DownloadZelle: UITableViewCell {
         inhalt.secondaryText = zeilen.joined(separator: "\n")
         inhalt.secondaryTextProperties.color = t.zustand == .fehler ? UIColor.systemRed : Marke.text
         inhalt.secondaryTextProperties.numberOfLines = 3
+        inhalt.secondaryTextProperties.font = Schrift.normal(14)
         if let bild = UIImage(contentsOfFile: Downloads.bildDatei(t.id).path) {
             inhalt.image = bild
         } else {
