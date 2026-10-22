@@ -18,7 +18,7 @@ final class DownloadsViewController: UITableViewController {
         super.viewDidLoad()
         overrideUserInterfaceStyle = .dark
         title = Text.downloads
-        navigationItem.rightBarButtonItem = UIBarButtonItem(barButtonSystemItem: .done, target: self, action: #selector(schliessen))
+        navigationItem.rightBarButtonItem = UIBarButtonItem(title: Text.fertig, style: .plain, target: self, action: #selector(schliessen))
         navigationItem.rightBarButtonItem?.accessibilityIdentifier = "kinolel.downloads.fertig"
         tableView.backgroundColor = Marke.grund
         tableView.register(DownloadZelle.self, forCellReuseIdentifier: DownloadZelle.kennung)

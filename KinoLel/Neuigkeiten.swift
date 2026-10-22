@@ -96,6 +96,8 @@ final class NeuigkeitenViewController: UIViewController {
         if let blatt = sheetPresentationController {
             blatt.detents = [.medium(), .large()]
             blatt.prefersGrabberVisible = true
+            // Viel Text: gleich ganz aufklappen, damit nichts abgeschnitten wirkt
+            if eintraege.reduce(0, { $0 + $1.punkte.count }) > 3 { blatt.selectedDetentIdentifier = .large }
         }
     }
 

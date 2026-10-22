@@ -26,3 +26,24 @@ Wege zum Testen:
 | 6 | Zurück in die App | Bild läuft an derselben Stelle weiter |
 | 7 | Anruf während Wiedergabe | Danach geht es weiter |
 | 8 | Fortschritt | Im Browser bei „Weiterschauen“ steht die richtige Stelle |
+| 9 | **Downloads** (ab 0.1.2) | Auf einer Film-/Folgenseite neben „Abspielen“ der Knopf **„Herunterladen“** (bei Staffeln „Staffel herunterladen“), auch im „…“-Menü. Tippen → Qualität wählen (Original, wenn das iPhone die Datei direkt kann, sonst Hoch/Mittel/Klein mit Größe und freiem Speicher) |
+| 10 | Fortschritt | Knopf zeigt Prozent; Profilbild → **„Downloads“** zeigt die Liste mit Fortschritt, Qualität, Größe und Speicherplatz. Standard: **nur im WLAN** (Schalter in der Liste) |
+| 11 | App schließen während des Downloads | Download läuft im Hintergrund weiter (iOS entscheidet über das Tempo) |
+| 12 | **Flugmodus**, App starten | Startbild meldet „nicht erreichbar“ und öffnet **„Meine Downloads“** von selbst; Antippen spielt ohne Internet |
+| 13 | Danach wieder online | Bei „Weiterschauen“ (auch im Browser) steht die offline erreichte Stelle |
+| 14 | Download löschen | Papierkorb in der Liste (oder nach links wischen) → „Löschen“ |
+| 15 | Heruntergeladenen Titel online abspielen | Spielt aus der Datei (kein Datenverbrauch), Fortschritt wie gewohnt |
+| 16 | Nachricht vom Server (Dashboard → Gerät → Nachricht) während der Wiedergabe | Erscheint oben **über dem Player**; Pause/Stopp vom Dashboard wirken auf den Player |
+| 17 | **Was ist neu** | Nach einem Update einmal die Meldung „Neu in KinoLel …“, beim nächsten Start nicht mehr (Neuinstallation: keine Meldung) |
+| 18 | Update-Hinweis | Gibt es eine neuere Testversion, fragt die App (höchstens alle 6 Stunden) und öffnet auf Wunsch die Download-Seite |
+| 19 | iPhone auf Englisch | App-eigene Texte (Startbild, Downloads, Meldungen) auf Englisch |
+
+## Automatische Tests (GitHub, ohne Signatur)
+Jeder Build läuft im **iOS-Simulator** durch (Ergebnis „oberflaechentest“ mit Bildschirmfotos):
+- „Was ist neu“ auf Deutsch, Englisch, Ungarisch – genau einmal
+- Start ohne Internet: Hinweis, Download-Liste, Schalter „Nur im WLAN“
+- mit dem Secret `KINOLEL_TEST_PW` (Konto kinolel-hilfe): eine kurze Folge „Klein“ herunterladen, ohne Internet aus der
+  Liste abspielen, wieder online → Position bei Jellyfin, Download löschen, abmelden
+
+Nicht im Simulator prüfbar (nur auf dem echten iPhone): Sperrbildschirm/Hintergrundton, Bild-in-Bild, Anruf,
+echter Flugmodus/Mobilfunk, Downloads bei geschlossener App über längere Zeit.
