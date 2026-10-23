@@ -377,13 +377,22 @@ final class WebViewController: UIViewController, WKNavigationDelegate, WKUIDeleg
           const log = (t) => postKinoLel('console.warn', 'KinoLel-Test: ' + t);
           const warte = async (f, s) => { for (let i = 0; i < s * 2; i++) { try { if (f()) return true; } catch (e) {} await new Promise(r => setTimeout(r, 500)); } return false; };
           const angemeldet = () => !!(window.ApiClient && ApiClient.accessToken() && ApiClient.getCurrentUserId());
-          if (kennwort && await warte(() => angemeldet() || document.querySelector('#txtManualName'), 60) && !angemeldet()) {
-            const n = document.querySelector('#txtManualName');
-            n.value = benutzer; n.dispatchEvent(new Event('input', { bubbles: true }));
-            const p = document.querySelector('#txtManualPassword');
-            p.value = kennwort; p.dispatchEvent(new Event('input', { bubbles: true }));
+          // Werte so setzen, dass auch React-Formulare sie übernehmen (Jellyfin 12.3); bis zu drei Versuche
+          const setze = (feld, wert) => {
+            Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(feld, wert);
+            feld.dispatchEvent(new Event('input', { bubbles: true }));
+            feld.dispatchEvent(new Event('change', { bubbles: true }));
+          };
+          for (let versuch = 1; kennwort && versuch <= 3 && !angemeldet(); versuch++) {
+            if (!await warte(() => angemeldet() || document.querySelector('#txtManualName'), 60) || angemeldet()) break;
+            setze(document.querySelector('#txtManualName'), benutzer);
+            setze(document.querySelector('#txtManualPassword'), kennwort);
+            await new Promise(r => setTimeout(r, 300));
             document.querySelector('#loginPage .manualLoginForm button[type=submit]').click();
-            log('Anmeldung abgeschickt');
+            log('Anmeldung abgeschickt (Versuch ' + versuch + ')');
+            if (await warte(() => angemeldet(), 20)) break;
+            const hinweis = document.querySelector('.toast, .errorMessage, .dialog .dialogContent, [role=alert]');
+            log('Anmeldung noch nicht durch: ' + (hinweis ? hinweis.textContent.trim().slice(0, 120) : 'kein Hinweis') + ', Seite ' + location.hash);
           }
           if (!await warte(() => angemeldet() && /^#\\/home/.test(location.hash), 60)) { log('nicht angemeldet'); return; }
           log('angemeldet');
