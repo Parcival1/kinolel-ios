@@ -112,7 +112,11 @@ final class PlayerController: NSObject, AVPlayerViewControllerDelegate {
         pvc.allowsPictureInPicturePlayback = true
         pvc.canStartPictureInPictureAutomaticallyFromInline = true
         pvc.updatesNowPlayingInfoCenter = false // Sperrbildschirm pflegen wir selbst (auch ohne Bild)
-        pvc.modalPresentationStyle = .fullScreen
+        // Über der Weboberfläche statt an ihrer Stelle (Test 23.10.2026 mit Jellyfin 12.3): bei .fullScreen nimmt iOS die
+        // Web-Ansicht aus dem Fenster und hält ihren Prozess nach einigen Sekunden an – dann kämen Befehle vom Server
+        // (Pause, Stopp, Nachricht, Streams-Grenze) und Fortschrittsmeldungen nicht mehr an.
+        pvc.modalPresentationStyle = .overFullScreen
+        pvc.modalPresentationCapturesStatusBarAppearance = true
         pvc.view.accessibilityIdentifier = "kinolel.player"
         pvc.beimSchliessen = { [weak self] in
             guard let self, !self.bildAktiv, !self.wiederherstellen else { return }

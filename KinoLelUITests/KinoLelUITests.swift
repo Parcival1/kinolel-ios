@@ -106,7 +106,7 @@ final class KinoLelUITests: XCTestCase {
         f.launch()
         sleep(32)
         bild("3d2-fernsteuerung-pause-nachricht")
-        sleep(18)
+        sleep(20)
         f.terminate()
 
         // Ohne Internet: Liste öffnet sich von selbst, Folge abspielen (Position wird alle 10 s gemerkt)
