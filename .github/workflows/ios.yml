@@ -81,8 +81,9 @@ jobs:
       # „Was ist neu“, Start ohne Internet, Downloads (mit Secret: herunterladen, offline abspielen, nachmelden, löschen)
       - name: Oberflächentests im Simulator
         env:
-          # Download-Test (lädt eine kurze Folge) nur bei Versionen – schont Server und NAS
-          TEST_RUNNER_KINOLEL_TEST_PW: ${{ startsWith(github.ref, 'refs/tags/v') && secrets.KINOLEL_TEST_PW || '' }}
+          # Download-Test (lädt eine kurze Folge) nur bei Versionen oder mit „[download-test]“ in der Commit-Nachricht –
+          # schont Server und NAS
+          TEST_RUNNER_KINOLEL_TEST_PW: ${{ (startsWith(github.ref, 'refs/tags/v') || contains(github.event.head_commit.message, '[download-test]')) && secrets.KINOLEL_TEST_PW || '' }}
           TEST_RUNNER_KINOLEL_TEST_ID: 6d36d6b857e1fc3e2813be03d92cba77
         run: bash .github/scripts/oberflaechentest.sh
 

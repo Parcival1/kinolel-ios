@@ -1,8 +1,9 @@
 // KinoLel-App (iOS): Oberflächentests im Simulator (XCUITest, nutzt die Test-Hilfen des Debug-Builds).
 //  1. „Was ist neu“ erscheint nach einem Update genau einmal – auf Deutsch, Englisch und Ungarisch
 //  2. Start ohne Internet: Hinweis auf dem Startbild, Download-Liste (leer, „Nur im WLAN“)
-//  3. Nur mit KINOLEL_TEST_PW (GitHub-Secret): anmelden, Folge „Klein“ herunterladen, ohne Internet aus der Liste
-//     abspielen, wieder online → Position wird nachgemeldet, Download löschen, abmelden.
+//  3. Nur mit KINOLEL_TEST_PW (GitHub-Secret): anmelden, Folge „Klein“ herunterladen, Befehle vom Server (Play, Pause,
+//     Nachricht, Weiter, Spulen, Stopp), ohne Internet aus der Liste abspielen, wieder online → Position wird
+//     nachgemeldet, Download löschen, abmelden.
 //     Die Prüfung der App-Meldungen („KinoLel-Test: …“, Nachmelden) macht .github/scripts/oberflaechentest.sh.
 import XCTest
 
@@ -98,6 +99,15 @@ final class KinoLelUITests: XCTestCase {
         XCTAssertEqual(zeile.value as? String, "fertig")
         bild("3d-liste")
         a.terminate()
+
+        // Befehle vom Server an die eigene Sitzung: Play (spielt den Download aus der Datei), Pause, Nachricht über dem
+        // Player, Weiter, Spulen, Stopp – Auswertung im Ablauf der App (oberflaechentest.sh)
+        let f = app(["-KinoLelTestFernsteuerung", id])
+        f.launch()
+        sleep(32)
+        bild("3d2-fernsteuerung-pause-nachricht")
+        sleep(18)
+        f.terminate()
 
         // Ohne Internet: Liste öffnet sich von selbst, Folge abspielen (Position wird alle 10 s gemerkt)
         let b = app(["-KinoLelTestOffline", "YES"])

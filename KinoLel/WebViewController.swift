@@ -234,13 +234,18 @@ final class WebViewController: UIViewController, WKNavigationDelegate, WKUIDeleg
         let daten = nachricht["data"]
         switch ereignis {
         case "video.play":
+            NSLog("KinoLel: Befehl video.play")
             if let d = daten as? [String: Any] { player.abspielen(d) }
-        case "video.playPause": player.playPause()
-        case "video.pause": player.pause()
-        case "video.unpause": player.weiter()
-        case "video.stop": player.stoppen(manuell: false)
-        case "video.seek":
-            if let ms = daten as? Double { player.springe(ms: ms) }
+        case "video.playPause", "video.pause", "video.unpause", "video.stop", "video.seek":
+            // Auch Befehle vom Server (Pause/Weiter/Stopp/Spulen) kommen über den playbackManager hier an
+            NSLog("KinoLel: Befehl %@", ereignis)
+            switch ereignis {
+            case "video.playPause": player.playPause()
+            case "video.pause": player.pause()
+            case "video.unpause": player.weiter()
+            case "video.stop": player.stoppen(manuell: false)
+            default: if let ms = daten as? Double { player.springe(ms: ms) }
+            }
         case "nachricht":
             // Nachricht vom Server (Dashboard „Nachricht senden“, KinoLel-Streams-Grenze): über dem nativen Player zeigen.
             // Ohne laufenden Player zeigt sie die Weboberfläche selbst.
@@ -351,7 +356,8 @@ final class WebViewController: UIViewController, WKNavigationDelegate, WKUIDeleg
     /// XCUITest (nur Debug-Build): Anmeldung mit Kennwort aus der Testumgebung (KINOLEL_TEST_PW, nie in Logs),
     /// Sprung zu einem Titel (-KinoLelTestZiel '#/details?id=…'), Download-Liste öffnen (-KinoLelTestDownloads YES),
     /// Abmelden (-KinoLelTestAbmelden YES; vorher Serverposition von -KinoLelTestZuruecksetzen <id> melden und auf 0
-    /// setzen). Ergebnisse als „KinoLel-Test: …“ im Systemprotokoll.
+    /// setzen), Fernsteuerung vom Server (-KinoLelTestFernsteuerung <id>: Play, Pause, Nachricht, Weiter, Spulen, Stopp an
+    /// die eigene Sitzung – prüft den Weg Server → Weboberfläche → nativer Player). Ergebnisse als „KinoLel-Test: …“.
     private func testHilfen() {
         guard !testGestartet else { return }
         testGestartet = true
@@ -361,12 +367,13 @@ final class WebViewController: UIViewController, WKNavigationDelegate, WKUIDeleg
         let ziel = vorlieben.string(forKey: "KinoLelTestZiel") ?? ""
         let abmelden = vorlieben.bool(forKey: "KinoLelTestAbmelden")
         let zuruecksetzen = vorlieben.string(forKey: "KinoLelTestZuruecksetzen") ?? ""
-        guard !kennwort.isEmpty || !ziel.isEmpty || abmelden else { return }
-        let werte: [Any] = [umgebung["KINOLEL_TEST_BENUTZER"] ?? "kinolel-hilfe", kennwort, ziel, abmelden, zuruecksetzen]
+        let fern = vorlieben.string(forKey: "KinoLelTestFernsteuerung") ?? ""
+        guard !kennwort.isEmpty || !ziel.isEmpty || abmelden || !fern.isEmpty else { return }
+        let werte: [Any] = [umgebung["KINOLEL_TEST_BENUTZER"] ?? "kinolel-hilfe", kennwort, ziel, abmelden, zuruecksetzen, fern]
         guard let json = try? JSONSerialization.data(withJSONObject: werte), let text = String(data: json, encoding: .utf8) else { return }
         let skript = """
         (async function (w) {
-          const [benutzer, kennwort, ziel, abmelden, zuruecksetzen] = w;
+          const [benutzer, kennwort, ziel, abmelden, zuruecksetzen, fern] = w;
           const log = (t) => postKinoLel('console.warn', 'KinoLel-Test: ' + t);
           const warte = async (f, s) => { for (let i = 0; i < s * 2; i++) { try { if (f()) return true; } catch (e) {} await new Promise(r => setTimeout(r, 500)); } return false; };
           const angemeldet = () => !!(window.ApiClient && ApiClient.accessToken() && ApiClient.getCurrentUserId());
@@ -392,6 +399,30 @@ final class WebViewController: UIViewController, WKNavigationDelegate, WKUIDeleg
             }
             await ApiClient.logout();
             log('abgemeldet');
+            return;
+          }
+          if (fern) {
+            // Befehle vom Server an die eigene Sitzung (wie Dashboard/Streams-Grenze)
+            const warten = (ms) => new Promise(r => setTimeout(r, ms));
+            await warten(3000);
+            const sitzungen = await ApiClient.getSessions({ deviceId: ApiClient.deviceId() });
+            const s = (sitzungen || []).find(x => x.DeviceId === ApiClient.deviceId());
+            if (!s) { log('Fernsteuerung: keine Sitzung'); return; }
+            log('Fernsteuerung: Sitzung fernsteuerbar=' + s.SupportsRemoteControl + ', Befehle=' + (s.SupportedCommands || []).length);
+            await ApiClient.sendPlayCommand(s.Id, { ItemIds: fern, PlayCommand: 'PlayNow' }); log('Fernsteuerung: Play gesendet');
+            await warten(15000);
+            await ApiClient.sendPlayStateCommand(s.Id, 'Pause'); log('Fernsteuerung: Pause gesendet');
+            await warten(4000);
+            await ApiClient.sendMessageCommand(s.Id, { Header: 'KinoLel-Test', Text: 'Nachricht über dem Player', TimeoutMs: 5000 });
+            log('Fernsteuerung: Nachricht gesendet');
+            await warten(4000);
+            await ApiClient.sendPlayStateCommand(s.Id, 'Unpause'); log('Fernsteuerung: Weiter gesendet');
+            await warten(4000);
+            await ApiClient.sendPlayStateCommand(s.Id, 'Seek', { SeekPositionTicks: 600000000 }); log('Fernsteuerung: Spulen gesendet');
+            await warten(4000);
+            await ApiClient.sendPlayStateCommand(s.Id, 'Stop'); log('Fernsteuerung: Stopp gesendet');
+            await warten(3000);
+            log('Fernsteuerung fertig');
             return;
           }
           if (ziel) { location.hash = ziel + '&serverId=' + ApiClient.serverId(); log('Ziel geöffnet'); }

@@ -25,14 +25,18 @@ grep -E "Test Case|error:|XCTAssert|Skipped|skipped|\*\* TEST" oberflaeche/xcode
 
 # Ablauf aus Sicht der App (NSLog im Systemprotokoll des Simulators)
 xcrun simctl spawn "$GERAET" log show --last 90m --style compact --predicate 'process == "KinoLel"' > oberflaeche/log.txt 2>&1 || true
-grep -E "KinoLel-Test:|KinoLel-Offline|KinoLel-Downloads|spiele Download|Player bereit|Player-Fehler|Was ist neu|Nachricht vom Server" \
+grep -E "KinoLel-Test:|KinoLel-Offline|KinoLel-Downloads|spiele Download|Player bereit|Player-Fehler|Was ist neu|Nachricht vom Server|Befehl video" \
   oberflaeche/log.txt | sed -E 's/^.*(KinoLel)/\1/' > oberflaeche/ablauf.txt
 echo "--- Ablauf der App ---"
 cat oberflaeche/ablauf.txt
 
 pruefung=""
 if grep -q "KinoLel-Test: angemeldet" oberflaeche/ablauf.txt; then
-  for muster in "KinoLel-Downloads: [0-9a-f]+ fertig" "spiele Download [0-9a-f]+ offline" "Player bereit" \
+  for muster in "KinoLel-Downloads: [0-9a-f]+ fertig" \
+                "Fernsteuerung: Sitzung fernsteuerbar=true" "Befehl video.play" "spiele Download [0-9a-f]+ aus der Datei" \
+                "Befehl video.pause" "Nachricht vom Server über dem Player" "Befehl video.unpause" "Befehl video.seek" \
+                "Befehl video.stop" "Fernsteuerung fertig" \
+                "spiele Download [0-9a-f]+ offline" "Player bereit" \
                 "Position von [0-9a-f]+ gemeldet" "Serverposition [1-9]" "gelöscht" "KinoLel-Test: abgemeldet"; do
     if grep -Eq "$muster" oberflaeche/ablauf.txt; then pruefung+="- OK: \`$muster\`"$'\n'
     else pruefung+="- FEHLT: \`$muster\`"$'\n'; status=1; fi
