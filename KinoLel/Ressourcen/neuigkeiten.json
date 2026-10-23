@@ -1,6 +1,18 @@
 {
   "versionen": [
     {
+      "version": "0.1.5",
+      "de": [
+        "Pause, Weiter, Stopp und Nachrichten vom Server erreichen den Player jetzt auch mitten im Film – vorher nur in den ersten Sekunden."
+      ],
+      "hu": [
+        "A szerverről küldött szünet, folytatás, leállítás és üzenetek most a film közepén is eljutnak a lejátszóhoz – korábban csak az első másodpercekben."
+      ],
+      "en": [
+        "Pause, resume, stop and messages sent from the server now reach the player even in the middle of a film – before, only in the first seconds."
+      ]
+    },
+    {
       "version": "0.1.4",
       "de": [
         "KinoLel sucht jetzt bei jedem Öffnen nach einer neuen Version. Tippst du auf „Später“, fragt die App erst nach ein paar Stunden wieder."

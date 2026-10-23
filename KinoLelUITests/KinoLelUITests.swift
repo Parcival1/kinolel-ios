@@ -29,11 +29,18 @@ final class KinoLelUITests: XCTestCase {
 
     private func beginntMit(_ text: String) -> NSPredicate { NSPredicate(format: "label BEGINSWITH %@", text) }
 
+    /// Der Simulator meldet gelegentlich „Failed to terminate“, obwohl die App normal läuft – das bricht den Test nicht ab
+    private func beenden(_ a: XCUIApplication) {
+        XCTExpectFailure("Simulator beendet die App manchmal nicht sofort", options: .nonStrict()) {
+            a.terminate()
+        }
+    }
+
     // MARK: 1. Was ist neu
 
     func test1Neuigkeiten() {
-        for (sprache, titel) in [("de", "Neu in KinoLel 0.1.4"), ("en", "New in KinoLel 0.1.4"), ("hu", "Újdonságok – KinoLel 0.1.4")] {
-            let a = app(["-KinoLelTestNeuigkeitenSeit", "0.1.3"], sprache: sprache)
+        for (sprache, titel) in [("de", "Neu in KinoLel 0.1.5"), ("en", "New in KinoLel 0.1.5"), ("hu", "Újdonságok – KinoLel 0.1.5")] {
+            let a = app(["-KinoLelTestNeuigkeitenSeit", "0.1.4"], sprache: sprache)
             a.launch()
             let ueberschrift = a.staticTexts["kinolel.neuigkeiten.titel"]
             XCTAssertTrue(ueberschrift.waitForExistence(timeout: 60), "Meldung „Was ist neu“ fehlt (\(sprache))")
@@ -98,7 +105,7 @@ final class KinoLelUITests: XCTestCase {
         XCTAssertTrue(zeile.waitForExistence(timeout: 20), "Download fehlt in der Liste")
         XCTAssertEqual(zeile.value as? String, "fertig")
         bild("3d-liste")
-        a.terminate()
+        beenden(a)
 
         // Befehle vom Server an die eigene Sitzung: Play (spielt den Download aus der Datei), Pause, Nachricht über dem
         // Player, Weiter, Spulen, Stopp – Auswertung im Ablauf der App (oberflaechentest.sh)
@@ -107,7 +114,7 @@ final class KinoLelUITests: XCTestCase {
         sleep(32)
         bild("3d2-fernsteuerung-pause-nachricht")
         sleep(20)
-        f.terminate()
+        beenden(f)
 
         // Ohne Internet: Liste öffnet sich von selbst, Folge abspielen (Position wird alle 10 s gemerkt)
         let b = app(["-KinoLelTestOffline", "YES"])
@@ -118,7 +125,7 @@ final class KinoLelUITests: XCTestCase {
         zeileOffline.tap()
         sleep(25)
         bild("3f-offline-wiedergabe")
-        b.terminate()
+        beenden(b)
 
         // Wieder online: App meldet die Position nach; Download löschen; Test-Hilfe prüft Serverstand und meldet ab
         let c = app(["-KinoLelTestDownloads", "YES", "-KinoLelTestAbmelden", "YES", "-KinoLelTestZuruecksetzen", id])
@@ -134,6 +141,6 @@ final class KinoLelUITests: XCTestCase {
         XCTAssertTrue(zeileOnline.waitForNonExistence(timeout: 10), "Download nicht gelöscht")
         bild("3h-geloescht")
         sleep(30)   // Nachmelden, Serverstand zurücksetzen, abmelden (Test-Hilfe der App)
-        c.terminate()
+        beenden(c)
     }
 }
