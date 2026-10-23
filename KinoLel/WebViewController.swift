@@ -418,19 +418,19 @@ final class WebViewController: UIViewController, WKNavigationDelegate, WKUIDeleg
             const s = (sitzungen || []).find(x => x.DeviceId === ApiClient.deviceId());
             if (!s) { log('Fernsteuerung: keine Sitzung'); return; }
             log('Fernsteuerung: Sitzung fernsteuerbar=' + s.SupportsRemoteControl + ', Befehle=' + (s.SupportedCommands || []).length);
-            await ApiClient.sendPlayCommand(s.Id, { ItemIds: fern, PlayCommand: 'PlayNow' }); log('Fernsteuerung: Play gesendet');
-            await warten(15000);
-            await ApiClient.sendPlayStateCommand(s.Id, 'Pause'); log('Fernsteuerung: Pause gesendet');
-            await warten(4000);
-            await ApiClient.sendMessageCommand(s.Id, { Header: 'KinoLel-Test', Text: 'Nachricht über dem Player', TimeoutMs: 5000 });
-            log('Fernsteuerung: Nachricht gesendet');
-            await warten(4000);
-            await ApiClient.sendPlayStateCommand(s.Id, 'Unpause'); log('Fernsteuerung: Weiter gesendet');
-            await warten(4000);
-            await ApiClient.sendPlayStateCommand(s.Id, 'Seek', { SeekPositionTicks: 600000000 }); log('Fernsteuerung: Spulen gesendet');
-            await warten(4000);
-            await ApiClient.sendPlayStateCommand(s.Id, 'Stop'); log('Fernsteuerung: Stopp gesendet');
-            await warten(3000);
+            // jeder Befehl einzeln abgesichert; direkt über die API (unabhängig von der apiclient-Version)
+            const post = (pfad, daten) => ApiClient.ajax({ type: 'POST', url: ApiClient.getUrl(pfad),
+              data: daten ? JSON.stringify(daten) : undefined, contentType: 'application/json' });
+            const befehl = async (name, fn, danach) => {
+              try { await fn(); log('Fernsteuerung: ' + name + ' gesendet'); } catch (e) { log('Fernsteuerung: ' + name + ' FEHLER ' + (e && (e.status || e.message) || e)); }
+              await warten(danach);
+            };
+            await befehl('Play', () => post('Sessions/' + s.Id + '/Playing?playCommand=PlayNow&itemIds=' + fern), 15000);
+            await befehl('Pause', () => post('Sessions/' + s.Id + '/Playing/Pause'), 4000);
+            await befehl('Nachricht', () => post('Sessions/' + s.Id + '/Message', { Header: 'KinoLel-Test', Text: 'Nachricht über dem Player', TimeoutMs: 5000 }), 4000);
+            await befehl('Weiter', () => post('Sessions/' + s.Id + '/Playing/Unpause'), 4000);
+            await befehl('Spulen', () => post('Sessions/' + s.Id + '/Playing/Seek?seekPositionTicks=600000000'), 4000);
+            await befehl('Stopp', () => post('Sessions/' + s.Id + '/Playing/Stop'), 3000);
             log('Fernsteuerung fertig');
             return;
           }
