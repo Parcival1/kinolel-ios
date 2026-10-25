@@ -27,7 +27,14 @@ final class WebViewController: UIViewController, WKNavigationDelegate, WKUIDeleg
         let inhalt = WKUserContentController()
         inhalt.add(SchwacherHandler(self), name: "kinolel")
         inhalt.addScriptMessageHandler(SchwacherAntwortHandler(self), contentWorld: .page, name: "kinolelFrage")
-        for quelle in [Skripte.appInfo(), Skripte.lade("nativeshell"), Skripte.lade("videoplayer"), Skripte.lade("kinolelDownloads")] {
+        var skripte = [Skripte.appInfo(), Skripte.lade("nativeshell"), Skripte.lade("videoplayer"), Skripte.lade("kinolelDownloads")]
+        #if DEBUG
+        // Test: KinoLel-Sprache wie mit dem Umschalter Deutsch/Magyar auf der Anmeldeseite (-KinoLelTestSprache hu)
+        if let test = UserDefaults.standard.string(forKey: "KinoLelTestSprache"), ["de", "hu"].contains(test) {
+            skripte.insert("try { localStorage.setItem('kl-sprache', '\(test)'); } catch (e) {}", at: 0)
+        }
+        #endif
+        for quelle in skripte {
             inhalt.addUserScript(WKUserScript(source: quelle, injectionTime: .atDocumentStart, forMainFrameOnly: true))
         }
 
@@ -175,7 +182,8 @@ final class WebViewController: UIViewController, WKNavigationDelegate, WKUIDeleg
     private func startAbgeschlossen() {
         guard !startFertig else { return }
         startFertig = true
-        meldungenZeigen()
+        // in der Sprache von kinolel.de (Lel 25.10.) – ohne Internet meldet die Seite nichts, dann nach 12 s die gemerkte
+        Sprache.wennBekannt(frist: 12) { [weak self] in self?.meldungenZeigen() }
     }
 
     /// Nicht über den Player, die Download-Liste oder eine andere Meldung legen – dann später erneut versuchen
@@ -255,6 +263,8 @@ final class WebViewController: UIViewController, WKNavigationDelegate, WKUIDeleg
             Hinweis.zeigen(d["text"] as? String ?? "", kopf: d["kopf"] as? String, sekunden: dauer > 0 ? dauer : 10, in: view.window)
         case "downloads.oeffnen":
             downloadsZeigen()
+        case "sprache":
+            Sprache.merken(daten as? String)
         case "openUrl":
             if let text = (daten as? [String: Any])?["url"] as? String, let url = URL(string: text, relativeTo: Marke.serverURL) {
                 oeffneExtern(url.absoluteURL)

@@ -25,7 +25,7 @@ enum Versionsnummer {
 }
 
 enum Neuigkeiten {
-    struct Eintrag { let version: String; let punkte: [String] }
+    struct Eintrag { let version: String; let texte: [String: Any] }
 
     private static let gesehenSchluessel = "kinolel.neuigkeitenGesehen"
     private static let ohneVorgaenger = 2
@@ -50,7 +50,6 @@ enum Neuigkeiten {
               let daten = try? Data(contentsOf: url),
               let json = try? JSONSerialization.jsonObject(with: daten) as? [String: Any],
               let versionen = json["versionen"] as? [[String: Any]] else { return }
-        let sprache = Sprache.aktuell.rawValue
         let gesehen = gesehenText.map(Versionsnummer.teile)
         var liste: [(teile: [Int], eintrag: Eintrag)] = []
         for v in versionen {
@@ -58,12 +57,16 @@ enum Neuigkeiten {
             let teile = Versionsnummer.teile(text)
             guard Versionsnummer.vergleiche(teile, aktuell) <= 0 else { continue }
             if let gesehen, Versionsnummer.vergleiche(teile, gesehen) <= 0 { continue }
-            let punkte = (v[sprache] as? [String]) ?? (v["de"] as? [String]) ?? []
-            if !punkte.isEmpty { liste.append((teile, Eintrag(version: text, punkte: punkte))) }
+            liste.append((teile, Eintrag(version: text, texte: v)))
         }
         liste.sort { Versionsnummer.vergleiche($0.teile, $1.teile) > 0 }
         offen = (gesehen == nil ? Array(liste.prefix(ohneVorgaenger)) : liste).map(\.eintrag)
         NSLog("KinoLel: Was ist neu – %ld Einträge", offen.count)
+    }
+
+    /// Stichpunkte in der Sprache von kinolel.de (Ersatz: Deutsch) – erst beim Zeigen, dann ist sie bekannt
+    private static func punkte(_ eintrag: Eintrag) -> [String] {
+        (eintrag.texte[Sprache.aktuell.rawValue] as? [String]) ?? (eintrag.texte["de"] as? [String]) ?? []
     }
 
     /// Gab es die App schon vorher? Ältere Versionen haben nichts gespeichert, aber die Weboberfläche lief schon
@@ -78,6 +81,7 @@ enum Neuigkeiten {
     /// Meldung zeigen (einmal); fertig wird nach dem Schließen aufgerufen – oder sofort, wenn es nichts zu zeigen gibt
     static func zeigen(auf gastgeber: UIViewController, fertig: @escaping () -> Void) {
         guard !offen.isEmpty else { return fertig() }
+        NSLog("KinoLel: Was ist neu gezeigt – Sprache %@, Titel %@", Sprache.aktuell.rawValue, Text.neuTitel(Marke.version))
         let dialog = KinoLelDialog(titel: Text.neuTitel(Marke.version), attributiert: inhalt(offen),
                                    knoepfe: [KinoLelDialog.Knopf(titel: Text.neuOk, art: .haupt, kennung: "kinolel.neuigkeiten.ok")],
                                    titelKennung: "kinolel.neuigkeiten.titel")
@@ -103,7 +107,7 @@ enum Neuigkeiten {
                     .font: Schrift.fett(16), .foregroundColor: UIColor.white, .paragraphStyle: kopf
                 ]))
             }
-            for p in eintrag.punkte {
+            for p in punkte(eintrag) {
                 ergebnis.append(NSAttributedString(string: "•\t" + p + "\n", attributes: [
                     .font: Schrift.normal(16), .foregroundColor: UIColor(white: 0.88, alpha: 1), .paragraphStyle: punkt
                 ]))

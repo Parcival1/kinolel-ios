@@ -39,20 +39,23 @@ final class KinoLelUITests: XCTestCase {
     // MARK: 1. Was ist neu
 
     func test1Neuigkeiten() {
-        for (sprache, titel) in [("de", "Neu in KinoLel 0.1.5"), ("en", "New in KinoLel 0.1.5"), ("hu", "Újdonságok – KinoLel 0.1.5")] {
-            let a = app(["-KinoLelTestNeuigkeitenSeit", "0.1.4"], sprache: sprache)
+        // Gerätesprache en/de/hu (en zuerst: noch keine KinoLel-Wahl gespeichert, die Seite folgt dem Gerät); zuletzt Lel 25.10.: Gerät Deutsch, in KinoLel „Magyar“ -> ungarisch
+        let faelle: [(String, String?, String)] = [("en", nil, "New in KinoLel 0.1.6"), ("de", "de", "Neu in KinoLel 0.1.6"),
+                                                   ("hu", "hu", "Újdonságok – KinoLel 0.1.6"), ("de", "hu", "Újdonságok – KinoLel 0.1.6")]
+        for (sprache, kinolel, titel) in faelle {
+            let a = app(["-KinoLelTestNeuigkeitenSeit", "0.1.5"] + (kinolel.map { ["-KinoLelTestSprache", $0] } ?? []), sprache: sprache)
             a.launch()
             let ueberschrift = a.staticTexts["kinolel.neuigkeiten.titel"]
             XCTAssertTrue(ueberschrift.waitForExistence(timeout: 60), "Meldung „Was ist neu“ fehlt (\(sprache))")
             XCTAssertEqual(ueberschrift.label, titel)
-            bild("neuigkeiten-\(sprache)")
+            bild("neuigkeiten-\(sprache)-kinolel-\(kinolel ?? "auto")")
             a.buttons["kinolel.neuigkeiten.ok"].tap()
             XCTAssertTrue(ueberschrift.waitForNonExistence(timeout: 10), "Meldung lässt sich nicht schließen")
             a.terminate()
         }
 
-        // Ohne „Update“ (Version schon gesehen): keine Meldung
-        let b = app()
+        // Ohne „Update“ (Version schon gesehen): keine Meldung; KinoLel wieder auf Deutsch für die weiteren Tests
+        let b = app(["-KinoLelTestSprache", "de"])
         b.launch()
         sleep(20)
         XCTAssertFalse(b.staticTexts["kinolel.neuigkeiten.titel"].exists, "Meldung darf nur einmal erscheinen")

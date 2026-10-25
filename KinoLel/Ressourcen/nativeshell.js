@@ -18,6 +18,18 @@
 	}
 	window.postKinoLel = postKinoLel;
 
+	// KinoLel (Lel 25.10.): Sprache von kinolel.de (<html lang>: KinoLel-Wahl Deutsch/Magyar bzw. Anzeigesprache) an die
+	// App melden – ihre eigenen Texte (Was ist neu, Update, Downloads) folgen ihr
+	(function () {
+		var zuletzt = '';
+		function melden() {
+			var lang = document.documentElement.getAttribute('lang') || '';
+			if (lang && lang !== zuletzt) { zuletzt = lang; postKinoLel('sprache', lang); }
+		}
+		new MutationObserver(melden).observe(document.documentElement, { attributes: true, attributeFilter: ['lang'] });
+		melden();
+	})();
+
 	// Anfragen mit Antwort an die App (Promise), z. B. Download-Zustand
 	var frageKanal = window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.kinolelFrage;
 	window.KinoLelNative = {

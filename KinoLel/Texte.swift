@@ -5,11 +5,48 @@ enum Sprache: String {
     case de, hu, en
 
     /// Erste passende Gerätesprache – sonst Deutsch (wie die Android-App)
-    static var aktuell: Sprache {
+    static var geraet: Sprache {
         for kennung in Locale.preferredLanguages {
             if let sprache = Sprache(rawValue: String(kennung.prefix(2)).lowercased()) { return sprache }
         }
         return .de
+    }
+
+    /// Lel 25.10. („Sind Updatenachrichten auch auf Ungarisch … wenn die ausgewählte Sprache auf Ungarisch ist?“):
+    /// Die eigenen Texte folgen der Sprache, die kinolel.de anzeigt (KinoLel-Wahl Deutsch/Magyar bzw. Jellyfins
+    /// Anzeigesprache) – die Seite meldet sie über `<html lang>` (nativeshell.js). Noch nie gemeldet: Gerätesprache.
+    static var aktuell: Sprache {
+        UserDefaults.standard.string(forKey: schluessel).flatMap(Sprache.init(rawValue:)) ?? geraet
+    }
+
+    private static let schluessel = "kinolel.spracheSeite"
+    private static var gemeldet = false
+    private static var warten: [() -> Void] = []
+
+    /// Von der Seite gemeldete Sprache („hu“, „de“, „en-us“ …) merken
+    static func merken(_ lang: String?) {
+        guard let lang, let sprache = Sprache(rawValue: String(lang.prefix(2)).lowercased()) else { return }
+        if UserDefaults.standard.string(forKey: schluessel) != sprache.rawValue {
+            NSLog("KinoLel: Sprache von kinolel.de %@", sprache.rawValue)
+        }
+        UserDefaults.standard.set(sprache.rawValue, forKey: schluessel)
+        gemeldet = true
+        let faellig = warten
+        warten = []
+        faellig.forEach { $0() }
+    }
+
+    /// [aktion] ausführen, sobald die Seite in diesem Start ihre Sprache gemeldet hat – höchstens [frist] Sekunden warten
+    static func wennBekannt(frist: TimeInterval, _ aktion: @escaping () -> Void) {
+        if gemeldet { return aktion() }
+        var erledigt = false
+        let einmal = {
+            guard !erledigt else { return }
+            erledigt = true
+            aktion()
+        }
+        warten.append(einmal)
+        DispatchQueue.main.asyncAfter(deadline: .now() + frist, execute: einmal)
     }
 
     /// Sprachkürzel, mit denen Jellyfin Untertitel kennzeichnet (ISO 639-2)
